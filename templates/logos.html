@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Pulse - Logo Options</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 40px;
+            line-height: 1.6;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 30px;
+            background: linear-gradient(135deg, #1a237e, #3949ab, #2196f3);
+            border-radius: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo-option {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .logo-option:hover {
+            background: rgba(33,150,243,0.05);
+            border-color: rgba(33,150,243,0.2);
+            transform: translateY(-5px);
+        }
+
+        .logo-display {
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2196f3;
+        }
+
+        .logo-description {
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Logo 1: Pulse Wave with Cricket Ball */
+        .logo1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .logo1 .cricket-text {
+            background: linear-gradient(45deg, #1565c0, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo1 .pulse-text {
+            background: linear-gradient(45deg, #00b0ff, #64b5f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .pulse-wave {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 20px;
+        }
+
+        .wave-line {
+            stroke: #2196f3;
+            stroke-width: 3;
+            fill: none;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* Logo 2: Cricket Ball with Heartbeat */
+        .logo2 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-size: 2.2rem;
+            font-weight: bold;
+        }
+
+        .cricket-ball {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc4444);
+            border-radius: 50%;
+            position: relative;
+            animation: beat 1.5s ease-in-out infinite;
+        }
+
+        .cricket-ball::before,
+        .cricket-ball::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 2px;
+        }
+
+        .cricket-ball::before {
+            width: 2px;
+            height: 40px;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .cricket-ball::after {
+            width: 30px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes beat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Logo 3: Stylized Text with Pulse Effect */
+        .logo3 {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #1565c0, #2196f3, #00b0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            animation: textPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes textPulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.2); }
+        }
+
+        .logo3::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #2196f3, transparent);
+            animation: underlinePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes underlinePulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* Logo 4: Badge Style */
+        .logo4 {
+            width: 120px;
+            height: 120px;
+            border: 4px solid #2196f3;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: radial-gradient(circle, rgba(33,150,243,0.1), transparent);
+        }
+
+        .logo4 .badge-text-top {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #2196f3;
+        }
+
+        .logo4 .badge-text-bottom {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00b0ff;
+        }
+
+        .logo4::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #64b5f6;
+            border-radius: 50%;
+            animation: ripple 2s linear infinite;
+        }
+
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+
+        /* Logo 5: Modern Minimalist */
+        .logo5 {
+            font-size: 2.8rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            position: relative;
+        }
+
+        .logo5 .cp-text {
+            background: linear-gradient(45deg, #1565c0, #64b5f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background: #2196f3;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            right: -25px;
+            animation: dotPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { transform: translateY(-50%) scale(1); opacity: 1; }
+            50% { transform: translateY(-50%) scale(1.5); opacity: 0.7; }
+        }
+
+        /* Logo 6: Gaming Style */
+        .logo6 {
+            font-size: 2.4rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            position: relative;
+            background: linear-gradient(45deg, #0d47a1, #1976d2, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(33,150,243,0.5);
+        }
+
+        .glow-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(33,150,243,0.1), transparent);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            background: rgba(33,150,243,0.1);
+            border: 1px solid rgba(33,150,243,0.2);
+            border-radius: 15px;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #1565c0, #2196f3);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33,150,243,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cricket Pulse</h1>
+        <p>Logo Design Options</p>
+    </div>
+
+    <div class="logo-grid">
+        <!-- Logo Option 1 -->
+        <div class="logo-option">
+            <div class="logo-display">
+                <div class="logo1">
+                    <span class="cricket-text">Cricket</span> <span class="pulse-text">Pulse</span>
+                    <svg class="pulse-wave" viewBox="0 0 200 20">
+                        <path class="wave-line" d="M0,10 Q50,2 100,10 T200,10" />
+                    </svg>
+                </div>
+            </div>
+            <div class="logo-title">Pulse Wave Classic</div>
+            <div class="logo-description">
+                Clean text with an animated pulse wave underneath. The wave represents the heartbeat of cricket action. Perfect for headers and main branding.
+            </div>
+        </div>
+
+        <!-- Logo Option 2 -->
+        <div class="logo-option">
+            <div class="logo-display">
+                <div class="logo2">
+                    <div class="cricket-ball"></div>
+                    <span style="background: linear-gradient(45deg, #1565c0, #2196f3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Cricket Pulse</span>
+                </div>
+            </div>
+            <div class="logo-title">Heartbeat Ball</div>
+            <div class="logo-description">
+                Animated cricket ball with a heartbeat effect alongside the text. The ball pulses like a heart, symbolizing the life and energy of cricket.
+            </div>
+        </div>
+
+        <!-- Logo Option 3 -->
+        <div class="logo-option">
+            <div class="logo-display">
+                <div class="logo3">Cricket Pulse</div>
+            </div>
+            <div class="logo-title">Pulsing Typography</div>
+            <div class="logo-description">
+                Bold, gradient text that gently pulses and glows. Features an animated underline that flows like a pulse. Minimal yet impactful design.
+            </div>
+        </div>
+
+        <!-- Logo Option 4 -->
+        <div class="logo-option">
+            <div class="logo-display">
+                <div class="logo4">
+                    <div class="badge-text-top">CRICKET</div>
+                    <div class="badge-text-bottom">PULSE</div>
+                </div>
+            </div>
+            <div class="logo-title">Badge Emblem</div>
+            <div class="logo-description">
+                Circular badge design with ripple animation. Professional and authoritative, perfect for app icons and official branding materials.
+            </div>
+        </div>
+
+        <!-- Logo Option 5 -->
+        <div class="logo-option">
+            <div class="logo-display">
+                <div class="logo5">
+                    <span class="cp-text">Cricket Pulse</span>
+                    <div class="pulse-dot"></div>
+                </div>
+            </div>
+            <div class="logo-title">Modern Minimal</div>
+            <div class="logo-description">
+                Clean, modern typography with a pulsing dot accent. Sophisticated and contemporary, ideal for tech-forward branding and UI elements.
+            </div>
+        </div>
+
+        <!-- Logo Option 6 -->
+        <div class="logo-option">
+            <div class="logo-display">
+                <div class="logo6">
+                    <div class="glow-effect"></div>
+                    Cricket Pulse
+                </div>
+            </div>
+            <div class="logo-title">Gaming Power</div>
+            <div class="logo-description">
+                Bold, uppercase gaming-style logo with glow effects. Emphasizes the competitive gaming aspect with dynamic energy and power.
+            </div>
+        </div>
+    </div>
+
+    <div class="download-section">
+        <h3>💡 Implementation Notes</h3>
+        <p>All logos are designed to work with your existing blue theme (#1565c0, #2196f3, #64b5f6)</p>
+        <p>Each design includes CSS animations that can be toggled on/off for different contexts</p>
+        <p>Logos are scalable and work well at different sizes from app icons to website headers</p>
+        
+        <h4 style="margin-top: 30px; color: #2196f3;">🎨 Recommended Usage:</h4>
+        <p><strong>Main Logo:</strong> Option 1 (Pulse Wave Classic) - Perfect for headers and primary branding</p>
+        <p><strong>App Icon:</strong> Option 4 (Badge Emblem) - Circular design works great for app stores</p>
+        <p><strong>Gaming Focus:</strong> Option 6 (Gaming Power) - Emphasizes competitive gaming aspect</p>
+        <p><strong>Minimalist:</strong> Option 5 (Modern Minimal) - Clean, professional for documentation</p>
+    </div>
+</body>
+</html>

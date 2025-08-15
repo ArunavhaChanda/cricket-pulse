@@ -1,0 +1,23 @@
+team_name,team_short,name,batting_vs_pace,batting_vs_spin,batting_aggression,bowling_skill,fielding_skill,bowling_type,is_captain,is_wicketkeeper
+Lads, LAD, Soham Banerjee,58,46,74,20,72,Pace,false,false
+Lads, LAD, Sanket Sangai,44,42,40,44,60,Pace,false,false
+Lads, LAD, Dibyajyoti Mazumdar,54,56,57,33,68,Spin,false,false
+Lads, LAD, Abhishek Shrivastava,46,51,53,45,55,Spin,false,false
+Lads, LAD, Tushar Mittal,52,62,57,51,67,Pace,false,true
+Lads, LAD, Aranish Dutta,50,47,54,51,56,Spin,false,false
+Lads, LAD, Sounak Paul,45,43,46,48,50,Pace,false,false
+Lads, LAD, Arunavha Chanda,48,53,60,56,62,Spin,true,false
+Lads, LAD, Arghadeep Mukherjee,39,42,53,39,57,Spin,false,false
+Lads, LAD, Mrigank Gupta,49,47,56,58,72,Pace,false,false
+Lads, LAD, Ameya Mittal,59,53,63,47,67,Pace,false,false
+Celebs, CEL, Sk al Maktoum,43,38,50,22,43,Spin,false,false
+Celebs, CEL, Tony Jaa,47,43,72,63,90,Pace,false,false
+Celebs, CEL, Pedro Pascal,45,42,57,29,52,Spin,false,false
+Celebs, CEL, Ratan Tata,36,39,12,30,16,Spin,false,false
+Celebs, CEL, Shah Rukh Khan,64,67,69,65,68,Pace,false,false
+Celebs, CEL, Christopher Nolan,59,53,49,49,52,Spin,false,false
+Celebs, CEL, Lalit Modi,35,39,40,27,36,Spin,false,false
+Celebs, CEL, Frank Lampard,67,62,75,58,88,Pace,false,false
+Celebs, CEL, Mark Zuckerberg,49,53,68,53,72,Pace,false,false
+Celebs, CEL, Cole Palmer,61,64,71,63,91,Pace,false,false
+Celebs, CEL, Dennis Villeneuve,47,43,46,22,52,Spin,false,false

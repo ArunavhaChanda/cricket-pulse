@@ -1,0 +1,1157 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block title %}Cricket Simulator - Home{% endblock %}
+{% block subtitle %}Welcome to the Ultimate Cricket Match Simulation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #0c1445 0%, #1a237e 50%, #283593 100%);
+        border-radius: 20px;
+        padding: 50px;
+        text-align: center;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 30% 30%, rgba(33,150,243,0.2) 0%, transparent 50%),
+            radial-gradient(circle at 70% 70%, rgba(0,25,112,0.3) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        background: linear-gradient(45deg, #fff, #64b5f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-subtitle {
+        font-size: 1.3rem;
+        margin-bottom: 30px;
+        color: #bbdefb;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .cta-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .cta-btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .cta-primary {
+        background: linear-gradient(45deg, #1565c0, #2196f3);
+        color: white;
+    }
+
+    .cta-secondary {
+        background: rgba(33,150,243,0.2);
+        color: #2196f3;
+        border: 2px solid rgba(33,150,243,0.3);
+    }
+
+    .cta-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(33,150,243,0.3);
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .feature-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 15px;
+        padding: 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+        background: rgba(33,150,243,0.05);
+        border-color: rgba(33,150,243,0.2);
+        transform: translateY(-5px);
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        display: block;
+    }
+
+    .feature-title {
+        font-size: 1.4rem;
+        margin-bottom: 15px;
+        color: #2196f3;
+    }
+
+    .feature-description {
+        color: #ccc;
+        line-height: 1.6;
+    }
+
+    .recent-matches {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 40px;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+        color: #2196f3;
+        text-align: center;
+    }
+
+    .match-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .match-item {
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 20px;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    .match-item:hover {
+        background: rgba(33,150,243,0.1);
+        transform: translateX(5px);
+    }
+
+    .match-teams {
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+
+    .match-type {
+        color: #64b5f6;
+        font-size: 0.9rem;
+    }
+
+    .match-status {
+        text-align: right;
+    }
+
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    .status-completed {
+        background: #4caf50;
+        color: white;
+    }
+
+    .status-live {
+        background: #f44336;
+        color: white;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-upcoming {
+        background: #ff9800;
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        background: rgba(33,150,243,0.1);
+        border: 1px solid rgba(33,150,243,0.2);
+        border-radius: 12px;
+        padding: 25px;
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #2196f3;
+        margin-bottom: 10px;
+    }
+
+    .stat-label {
+        color: #ccc;
+        font-size: 0.9rem;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+        
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .match-item {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .match-status {
+            text-align: left;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-content">
+        <h1 class="hero-title">🏏 Cricket Simulator</h1>
+        <p class="hero-subtitle">
+            Experience the thrill of cricket with our advanced simulation engine. 
+            Create teams, manage players, and watch realistic matches unfold ball by ball.
+        </p>
+        <div class="cta-buttons">
+            <a href="/teams" class="cta-btn cta-primary">🚀 Start Playing</a>
+            <a href="#features" class="cta-btn cta-secondary">📖 Learn More</a>
+        </div>
+    </div>
+</section>
+
+<!-- Statistics Overview -->
+<section class="stats-overview" id="stats-overview">
+    <!-- Stats will be loaded dynamically -->
+</section>
+
+<!-- Features Section -->
+<section id="features">
+    <div class="features-grid">
+        <div class="feature-card">
+            <span class="feature-icon">👥</span>
+            <h3 class="feature-title">Team Management</h3>
+            <p class="feature-description">
+                Create and customize your cricket teams with detailed player attributes. 
+                Set batting skills, bowling abilities, and special roles for realistic gameplay.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">⚡</span>
+            <h3 class="feature-title">Realistic Simulation</h3>
+            <p class="feature-description">
+                Advanced probability-based simulation engine that considers player skills, 
+                match conditions, and location effects for authentic cricket experiences.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">📊</span>
+            <h3 class="feature-title">Live Statistics</h3>
+            <p class="feature-description">
+                Real-time match statistics, player performance tracking, and comprehensive 
+                scorecards that update with every delivery.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">🎯</span>
+            <h3 class="feature-title">Multiple Formats</h3>
+            <p class="feature-description">
+                Support for T20 and ODI match formats with authentic rules, 
+                over restrictions, and format-specific gameplay mechanics.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">🌍</span>
+            <h3 class="feature-title">Location Effects</h3>
+            <p class="feature-description">
+                Different cricket grounds with unique characteristics that affect 
+                player performance and match dynamics.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">📱</span>
+            <h3 class="feature-title">Live Updates</h3>
+            <p class="feature-description">
+                Real-time match updates with beautiful animations, commentary, 
+                and ball-by-ball action tracking.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Matches Section -->
+<section class="recent-matches">
+    <h2 class="section-title">🏆 Recent Matches</h2>
+    <div class="match-list" id="recent-matches-list">
+        <!-- Matches will be loaded dynamically -->
+    </div>
+</section>
+
+<!-- Quick Actions -->
+<section class="hero-section" style="padding: 30px; margin-top: 40px;">
+    <div class="hero-content">
+        <h2 style="font-size: 1.8rem; margin-bottom: 20px;">Ready to Get Started?</h2>
+        <p style="font-size: 1.1rem; margin-bottom: 25px; color: #bbdefb;">
+            Create your first team and start playing cricket matches right away!
+        </p>
+        <div class="cta-buttons">
+            <a href="/teams" class="cta-btn cta-primary">👥 Manage Teams</a>
+            <button onclick="quickStart()" class="cta-btn cta-secondary">⚡ Quick Match</button>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load dashboard data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardStats();
+    loadRecentMatches();
+});
+
+function loadDashboardStats() {
+    // Load overall statistics
+    Promise.all([
+        fetch('/api/teams').then(r => r.json()),
+        fetch('/api/dashboard/stats').then(r => r.json()).catch(() => ({ total_matches: 0, total_players: 0, active_matches: 0 }))
+    ]).then(([teams, stats]) => {
+        const totalPlayers = teams.reduce((sum, team) => sum + team.players.length, 0);
+        const completeTeams = teams.filter(team => team.players.length === 11).length;
+        
+        displayStats({
+            total_teams: teams.length,
+            complete_teams: completeTeams,
+            total_players: totalPlayers,
+            total_matches: stats.total_matches || 0,
+            active_matches: stats.active_matches || 0
+        });
+    }).catch(error => {
+        console.error('Error loading stats:', error);
+        // Show default stats
+        displayStats({
+            total_teams: 0,
+            complete_teams: 0,
+            total_players: 0,
+            total_matches: 0,
+            active_matches: 0
+        });
+    });
+}
+
+function displayStats(stats) {
+    const statsContainer = document.getElementById('stats-overview');
+    statsContainer.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-number">${stats.total_teams}</div>
+            <div class="stat-label">Total Teams</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">${stats.complete_teams}</div>
+            <div class="stat-label">Complete Teams</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">${stats.total_players}</div>
+            <div class="stat-label">Total Players</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">${stats.total_matches}</div>
+            <div class="stat-label">Matches Played</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">${stats.active_matches}</div>
+            <div class="stat-label">Live Matches</div>
+        </div>
+    `;
+}
+
+function loadRecentMatches() {
+    fetch('/api/matches/recent')
+        .then(response => response.json())
+        .then(matches => {
+            displayRecentMatches(matches);
+        })
+        .catch(error => {
+            console.error('Error loading recent matches:', error);
+            displayRecentMatches([]);
+        });
+}
+
+function displayRecentMatches(matches) {
+    const matchesList = document.getElementById('recent-matches-list');
+    
+    if (matches.length === 0) {
+        matchesList.innerHTML = `
+            <div class="empty-state">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🏏</div>
+                <h3 style="margin-bottom: 10px; color: #666;">No matches yet</h3>
+                <p style="color: #888;">Create some teams and start your first match!</p>
+                <a href="/teams" class="cta-btn cta-primary" style="margin-top: 20px;">Create Teams</a>
+            </div>
+        `;
+        return;
+    }
+    
+    matchesList.innerHTML = matches.map(match => `
+        <div class="match-item" onclick="viewMatch('${match.match_id}')">
+            <div class="match-info">
+                <div class="match-teams">${match.team1_name} vs ${match.team2_name}</div>
+                <div class="match-type">${match.match_type} • ${match.location || 'Default'}</div>
+            </div>
+            <div class="match-score">
+                ${match.status === 'completed' && match.result_text ? 
+                    `<div style="font-size: 0.9rem; color: #4caf50;">${match.result_text}</div>` : 
+                    `<div style="color: #ccc;">Score: ${match.current_score || 'Not started'}</div>`
+                }
+            </div>
+            <div class="match-status">
+                <span class="status-badge status-${match.status}">
+                    ${match.status === 'completed' ? '✅ Completed' : 
+                      match.status === 'first_innings' || match.status === 'second_innings' ? '🔴 Live' :
+                      '⏳ ' + match.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function viewMatch(matchId) {
+    window.location.href = `/match/${matchId}`;
+}
+
+function quickStart() {
+    // Check if there are at least 2 complete teams
+    fetch('/api/teams')
+        .then(response => response.json())
+        .then(teams => {
+            const completeTeams = teams.filter(team => team.players.length === 11);
+            
+            if (completeTeams.length < 2) {
+                showNotification('You need at least 2 complete teams (11 players each) to start a match', 'error');
+                setTimeout(() => {
+                    window.location.href = '/teams';
+                }, 2000);
+                return;
+            }
+            
+            // Auto-create a quick match with first two complete teams
+            const team1 = completeTeams[0];
+            const team2 = completeTeams[1];
+            
+            fetch('/api/matches', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    team1_id: team1.id,
+                    team2_id: team2.id,
+                    match_type: 'T20',
+                    location: 'default'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showNotification(data.error, 'error');
+                } else {
+                    showNotification(`Quick match created: ${team1.short_name} vs ${team2.short_name}!`, 'success');
+                    setTimeout(() => {
+                        window.location.href = `/match/${data.match_id}`;
+                    }, 1500);
+                }
+            })
+            .catch(error => {
+                showNotification('Error creating quick match', 'error');
+                console.error('Error:', error);
+            });
+        })
+        .catch(error => {
+            showNotification('Error loading teams', 'error');
+            console.error('Error:', error);
+        });
+}
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Auto-refresh recent matches every 30 seconds
+setInterval(loadRecentMatches, 30000);
+</script>
+{% endblock %}
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Simulator - Refined Concepts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 15px;
+            overflow-x: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a237e, #3949ab, #2196f3);
+            border-radius: 15px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .concepts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .concept {
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .concept-title {
+            padding: 20px;
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .concept-preview {
+            height: 600px;
+            position: relative;
+            margin: 0 20px 20px 20px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .concept-description {
+            padding: 25px;
+            background: rgba(0,0,0,0.3);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Shared Elements */
+        .top-banner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .team-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .team-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .team-score {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .run-rate {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .match-info {
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .bottom-ticker {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 0.9rem;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ticker-content {
+            animation: tickerScroll 20s linear infinite;
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .main-content {
+            position: absolute;
+            top: 80px;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .center-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .player-status {
+            background: rgba(0,0,0,0.6);
+            border-radius: 15px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .batsman {
+            text-align: center;
+            position: relative;
+        }
+
+        .batsman.on-strike {
+            background: rgba(255,215,0,0.2);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .batsman.on-strike::before {
+            content: "★";
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            color: #ffd700;
+            font-size: 1.2rem;
+        }
+
+        .player-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .player-stats {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .over-display {
+            background: rgba(0,0,0,0.6);
+            border-radius: 15px;
+            padding: 20px;
+            flex: 1;
+        }
+
+        .current-over-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .bowler-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .over-number {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .balls-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ball {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            animation: ballAppear 0.5s ease-out;
+        }
+
+        @keyframes ballAppear {
+            0% { transform: scale(0) rotate(180deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .ball.dot { background: #6c757d; color: white; }
+        .ball.runs { background: #007bff; color: white; }
+        .ball.four { background: #28a745; color: white; }
+        .ball.six { background: #dc3545; color: white; }
+        .ball.wicket { background: #6f42c1; color: white; }
+        .ball.wide { background: #ffc107; color: black; }
+        .ball.noball { background: #fd7e14; color: white; }
+
+        .scorecards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .scorecard {
+            background: rgba(0,0,0,0.6);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .scorecard-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .batting-list, .bowling-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .batting-row, .bowling-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+
+        .batting-row:hover, .bowling-row:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .bowling-row {
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+        }
+
+        .batting-row.current {
+            background: rgba(255,215,0,0.1);
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+
+        .batting-row.not-out {
+            color: #28a745;
+        }
+
+        .batting-row.out {
+            color: #dc3545;
+            opacity: 0.7;
+        }
+
+        /* Concept 1: Midnight Blue Elegance */
+        .concept1 {
+            background: linear-gradient(135deg, #0c1445 0%, #1a237e 50%, #283593 100%);
+        }
+
+        .concept1 .concept-title {
+            background: linear-gradient(45deg, #1565c0, #1976d2, #42a5f5);
+            color: white;
+        }
+
+        .concept1 .concept-preview {
+            background: 
+                linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 20%),
+                radial-gradient(circle at center, rgba(33,150,243,0.1) 0%, transparent 70%);
+            border: 2px solid #1976d2;
+        }
+
+        .concept1 .top-banner {
+            background: linear-gradient(90deg, rgba(0,0,0,0.9), rgba(25,118,210,0.3), rgba(0,0,0,0.9));
+            border-bottom: 3px solid #2196f3;
+            color: #e3f2fd;
+        }
+
+        .concept1 .bottom-ticker {
+            background: linear-gradient(90deg, #1565c0, #1976d2);
+            color: white;
+        }
+
+        .concept1 .player-status, .concept1 .over-display, .concept1 .scorecard {
+            border: 1px solid rgba(33,150,243,0.3);
+            box-shadow: 0 0 20px rgba(33,150,243,0.1);
+        }
+
+        /* Concept 2: Electric Blue Storm */
+        .concept2 {
+            background: linear-gradient(135deg, #000051 0%, #1a237e 50%, #3949ab 100%);
+        }
+
+        .concept2 .concept-title {
+            background: linear-gradient(45deg, #00b0ff, #2196f3, #3f51b5);
+            color: white;
+        }
+
+        .concept2 .concept-preview {
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0px,
+                    rgba(0,176,255,0.1) 2px,
+                    transparent 4px,
+                    transparent 50px
+                ),
+                radial-gradient(ellipse at center, rgba(0,176,255,0.15) 0%, transparent 60%);
+            border: 2px solid #00b0ff;
+        }
+
+        .concept2 .top-banner {
+            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(0,176,255,0.2));
+            border-bottom: 3px solid #00b0ff;
+            color: #e1f5fe;
+            box-shadow: 0 0 30px rgba(0,176,255,0.3);
+        }
+
+        .concept2 .bottom-ticker {
+            background: linear-gradient(90deg, #0277bd, #00b0ff);
+            color: white;
+            animation: tickerGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes tickerGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0,176,255,0.5); }
+            50% { box-shadow: 0 0 25px rgba(0,176,255,0.8); }
+        }
+
+        .concept2 .player-status, .concept2 .over-display, .concept2 .scorecard {
+            border: 1px solid rgba(0,176,255,0.4);
+            box-shadow: 0 0 15px rgba(0,176,255,0.2);
+        }
+
+        /* Concept 3: Royal Blue Premium */
+        .concept3 {
+            background: linear-gradient(135deg, #0d47a1 0%, #1565c0 50%, #1976d2 100%);
+        }
+
+        .concept3 .concept-title {
+            background: linear-gradient(45deg, #0d47a1, #1565c0, #90caf9);
+            color: white;
+        }
+
+        .concept3 .concept-preview {
+            background: 
+                linear-gradient(45deg, 
+                    rgba(13,71,161,0.1) 25%, 
+                    transparent 25%, 
+                    transparent 75%, 
+                    rgba(13,71,161,0.1) 75%),
+                linear-gradient(-45deg, 
+                    rgba(21,101,192,0.1) 25%, 
+                    transparent 25%, 
+                    transparent 75%, 
+                    rgba(21,101,192,0.1) 75%);
+            background-size: 60px 60px;
+            border: 2px solid #1565c0;
+        }
+
+        .concept3 .top-banner {
+            background: rgba(13,71,161,0.9);
+            border-bottom: 4px solid #1976d2;
+            color: #bbdefb;
+            backdrop-filter: blur(10px);
+        }
+
+        .concept3 .bottom-ticker {
+            background: linear-gradient(45deg, #0d47a1, #1565c0, #1976d2);
+            color: white;
+        }
+
+        .concept3 .player-status, .concept3 .over-display, .concept3 .scorecard {
+            background: rgba(13,71,161,0.2);
+            border: 1px solid rgba(25,118,210,0.4);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Concept 4: Sapphire Tech */
+        .concept4 {
+            background: linear-gradient(135deg, #001970 0%, #0d47a1 50%, #2196f3 100%);
+        }
+
+        .concept4 .concept-title {
+            background: linear-gradient(45deg, #001970, #0d47a1, #64b5f6);
+            color: white;
+        }
+
+        .concept4 .concept-preview {
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(33,150,243,0.2) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(0,25,112,0.3) 0%, transparent 50%),
+                repeating-conic-gradient(
+                    from 0deg at 50% 50%,
+                    transparent 0deg,
+                    rgba(33,150,243,0.05) 45deg,
+                    transparent 90deg
+                );
+            border: 2px solid #2196f3;
+        }
+
+        .concept4 .top-banner {
+            background: linear-gradient(90deg, 
+                rgba(0,25,112,0.95) 0%, 
+                rgba(13,71,161,0.8) 50%, 
+                rgba(0,25,112,0.95) 100%);
+            border-bottom: 3px solid #64b5f6;
+            color: #e3f2fd;
+        }
+
+        .concept4 .bottom-ticker {
+            background: linear-gradient(90deg, #001970, #0d47a1, #2196f3);
+            color: white;
+        }
+
+        .concept4 .player-status, .concept4 .over-display, .concept4 .scorecard {
+            background: rgba(0,25,112,0.3);
+            border: 1px solid rgba(100,181,246,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏏 Cricket Simulator</h1>
+    </div>
+
+    <div class="concept concept1">
+        <div class="concept-preview">
+            <div class="top-banner">
+                <div class="team-info">
+                    <div class="team-name">IND</div>
+                    <div class="team-score">156/4</div>
+                    <div class="run-rate">RR: 8.67</div>
+                </div>
+                <div class="match-info">
+                    T20 Match<br>
+                    18.0/20 overs
+                </div>
+                <div class="team-info">
+                    <div class="run-rate">Req: 9.15</div>
+                    <div class="team-score">183/7</div>
+                    <div class="team-name">AUS</div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="center-area">
+                    <div class="player-status">
+                        <div class="batsman on-strike">
+                            <div class="player-name">V. Kohli</div>
+                            <div class="player-stats">47* (31) | SR: 151.61<br>4s: 6 • 6s: 2</div>
+                        </div>
+                        <div class="batsman">
+                            <div class="player-name">H. Pandya</div>
+                            <div class="player-stats">12* (8) | SR: 150.00<br>4s: 2 • 6s: 0</div>
+                        </div>
+                    </div>
+
+                    <div class="over-display">
+                        <div class="current-over-info">
+                            <div class="bowler-name">P. Cummins</div>
+                            <div class="over-number">Over 18.0</div>
+                        </div>
+                        <div class="balls-container">
+                            <div class="ball runs">1</div>
+                            <div class="ball four">4</div>
+                            <div class="ball dot">•</div>
+                            <div class="ball six">6</div>
+                            <div class="ball runs">2</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="scorecards">
+                    <div class="scorecard">
+                        <div class="scorecard-title">🏏 Batting Card</div>
+                        <div class="batting-list">
+                            <div class="batting-row out">
+                                <div>R. Sharma (c)</div>
+                                <div>23</div>
+                                <div>18</div>
+                                <div>127.8</div>
+                            </div>
+                            <div class="batting-row out">
+                                <div>S. Gill</div>
+                                <div>31</div>
+                                <div>24</div>
+                                <div>129.2</div>
+                            </div>
+                            <div class="batting-row current not-out">
+                                <div>V. Kohli</div>
+                                <div>47*</div>
+                                <div>31</div>
+                                <div>151.6</div>
+                            </div>
+                            <div class="batting-row current not-out">
+                                <div>H. Pandya</div>
+                                <div>12*</div>
+                                <div>8</div>
+                                <div>150.0</div>
+                            </div>
+                            <div class="batting-row">
+                                <div>S. Iyer</div>
+                                <div>-</div>
+                                <div>-</div>
+                                <div>-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="scorecard">
+                        <div class="scorecard-title">⚾ Bowling Figures</div>
+                        <div class="bowling-list">
+                            <div class="bowling-row">
+                                <div>P. Cummins</div>
+                                <div>3.5</div>
+                                <div>34</div>
+                                <div>1</div>
+                                <div>8.87</div>
+                            </div>
+                            <div class="bowling-row">
+                                <div>M. Starc</div>
+                                <div>4.0</div>
+                                <div>28</div>
+                                <div>2</div>
+                                <div>7.00</div>
+                            </div>
+                            <div class="bowling-row">
+                                <div>A. Zampa</div>
+                                <div>4.0</div>
+                                <div>31</div>
+                                <div>1</div>
+                                <div>7.75</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-ticker">
+                <div class="ticker-content">
+                    🏆 India won toss, elected to bat • 🔥 Kohli reaches 47* in 31 balls • ⚡ Free Hit coming up • 🎯 Australia needs 28 runs in 12 balls
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html> -->
