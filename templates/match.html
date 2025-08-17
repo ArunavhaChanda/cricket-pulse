@@ -296,7 +296,7 @@ function populatePlayerDropdowns() {
     matchState.bowlingTeam.players.forEach(player => {
         const bowlerOption = document.createElement('option');
         bowlerOption.value = player.id;
-        bowlerOption.textContent = `${player.name} (Bowl: ${player.bowling_skill})`;
+        bowlerOption.textContent = `${player.name} (Bowl: ${player.bowling_type}, ${player.bowling_skill})`;
         bowlerSelect.appendChild(bowlerOption);
     });
 }
@@ -334,7 +334,7 @@ function updatePlayerPreview() {
         previewHTML += `
             <div class="player-preview-item">
                 <strong>⚾ Bowler:</strong> ${bowler.name}<br>
-                Bowling: ${bowler.bowling_skill}
+                Bowling: ${bowler.bowling_skill} | ${bowler.bowling_type}
             </div>
         `;
     }
@@ -646,26 +646,212 @@ function handleWicket(data) {
 }
 
 function selectNewBatsman() {
-    // Get available batsmen (not out, not currently batting)
+    // Get available batsmen (not out, not currently batting, not already in batting order)
     const availableBatsmen = matchState.battingTeam.players.filter(player => 
         !player.isOut && 
         player.id !== matchState.striker.id && 
         player.id !== matchState.nonStriker.id &&
-        !player.hasAlreadyBatted
+        !matchState.battingOrderPlayers.some(battingPlayer => battingPlayer.id === player.id)
     );
     
     if (availableBatsmen.length > 0) {
-        // For demo, auto-select next batsman
-        matchState.striker = availableBatsmen[0];
-        matchState.battingOrderPlayers.push(matchState.striker);
-        matchState.striker.hasAlreadyBatted = true;
-        matchState.striker.runs = 0;
-        matchState.striker.ballsFaced = 0;
-        matchState.striker.fours = 0;
-        matchState.striker.sixes = 0;
+        // Open modal for user to select new batsman
+        openNewBatsmanModal(availableBatsmen);
+    } else {
+        // No more batsmen available - innings should end
+        showNotification('No more batsmen available - innings ending', 'info');
+        endInnings();
+    }
+}
+
+function openNewBatsmanModal(availableBatsmen) {
+    const modal = document.getElementById('player-modal');
+    
+    // Update modal title and content for new batsman selection
+    document.getElementById('modal-title').textContent = '🏏 Select New Batsman';
+    
+    // Clear previous content
+    const modalContent = modal.querySelector('.modal-content');
+    
+    // Create new batsman selection interface
+    modalContent.innerHTML = `
+        <h3 id="modal-title">🏏 Select New Batsman</h3>
         
-        updatePlayerDisplay();
-        showNotification(`${matchState.striker.name} comes to the crease`, 'info');
+        <div class="selection-section">
+            <h4>🔄 New Batsman Selection</h4>
+            <p>Choose who comes to the crease next:</p>
+            
+            <div class="player-grid">
+                <div class="player-column">
+                    <label>New Batsman:</label>
+                    <select id="new-batsman-select" class="player-select-dropdown">
+                        <option value="">Choose new batsman...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Player Stats Preview -->
+        <div class="player-preview" id="player-preview">
+            <!-- Player stats will be shown here -->
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="confirmNewBatsman()">✅ Confirm Selection</button>
+            <button class="btn btn-secondary" onclick="closeNewBatsmanModal()">❌ Cancel</button>
+        </div>
+    `;
+    
+    // Populate dropdown with available batsmen
+    populateNewBatsmanDropdown(availableBatsmen);
+    
+    // Show modal
+    modal.style.display = 'block';
+    
+    // Add event listener for batsman selection changes
+    document.getElementById('new-batsman-select').addEventListener('change', updateNewBatsmanPreview);
+}
+
+function populateNewBatsmanDropdown(availableBatsmen) {
+    const batsmanSelect = document.getElementById('new-batsman-select');
+    
+    // Clear existing options
+    batsmanSelect.innerHTML = '<option value="">Choose new batsman...</option>';
+    
+    // Populate dropdown with available batsmen
+    availableBatsmen.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.id;
+        option.textContent = `${player.name} (vs Pace: ${player.batting_vs_pace}, vs Spin: ${player.batting_vs_spin}, Aggression: ${player.batting_aggression})`;
+        batsmanSelect.appendChild(option);
+    });
+}
+
+function updateNewBatsmanPreview() {
+    const batsmanId = document.getElementById('new-batsman-select').value;
+    const previewDiv = document.getElementById('player-preview');
+    
+    if (batsmanId) {
+        const batsman = matchState.battingTeam.players.find(p => p.id == batsmanId);
+        previewDiv.innerHTML = `
+            <h4>📊 New Batsman Preview</h4>
+            <div class="player-preview-item">
+                <strong>🏏 New Batsman:</strong> ${batsman.name}<br>
+                Skill vs Pace: ${batsman.batting_vs_pace} | Skill vs Spin: ${batsman.batting_vs_spin} | Aggression: ${batsman.batting_aggression}
+            </div>
+        `;
+    } else {
+        previewDiv.innerHTML = '<h4>📊 New Batsman Preview</h4><p>Select a batsman to see their stats</p>';
+    }
+}
+
+function confirmNewBatsman() {
+    const batsmanId = document.getElementById('new-batsman-select').value;
+    
+    if (!batsmanId) {
+        showNotification('Please select a new batsman', 'error');
+        return;
+    }
+    
+    // Get the selected batsman
+    const newBatsman = matchState.battingTeam.players.find(p => p.id == batsmanId);
+    
+    // Set as new striker
+    matchState.striker = newBatsman;
+    matchState.battingOrderPlayers.push(matchState.striker);
+    
+    // Initialize batsman stats
+    matchState.striker.runs = 0;
+    matchState.striker.ballsFaced = 0;
+    matchState.striker.fours = 0;
+    matchState.striker.sixes = 0;
+    
+    // Close modal
+    closeNewBatsmanModal();
+    
+    // Update display
+    updatePlayerDisplay();
+    
+    // Show confirmation
+    showNotification(`${matchState.striker.name} comes to the crease`, 'success');
+    
+    // Update ticker
+    updateTicker(`🏏 ${matchState.striker.name} is the new batsman • Ready to face the next ball`);
+}
+
+function closeNewBatsmanModal() {
+    const modal = document.getElementById('player-modal');
+    modal.style.display = 'none';
+    
+    // Remove event listener
+    const batsmanSelect = document.getElementById('new-batsman-select');
+    if (batsmanSelect) {
+        batsmanSelect.removeEventListener('change', updateNewBatsmanPreview);
+    }
+    
+    // Reset modal to original opening players selection content
+    resetModalToOriginal();
+}
+
+function resetModalToOriginal() {
+    const modal = document.getElementById('player-modal');
+    const modalContent = modal.querySelector('.modal-content');
+    
+    // Restore original modal content for opening players selection
+    modalContent.innerHTML = `
+        <h3 id="modal-title">Select Opening Players</h3>
+        
+        <!-- Batsmen Selection -->
+        <div class="selection-section">
+            <h4>🏏 Select Opening Batsmen</h4>
+            <div class="player-grid">
+                <div class="player-column">
+                    <label>Striker (on strike):</label>
+                    <select id="striker-select" class="player-select-dropdown">
+                        <option value="">Choose striker...</option>
+                    </select>
+                </div>
+                <div class="player-column">
+                    <label>Non-striker:</label>
+                    <select id="non-striker-select" class="player-select-dropdown">
+                        <option value="">Choose non-striker...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bowler Selection -->
+        <div class="selection-section">
+            <h4>⚾ Select Opening Bowler</h4>
+            <div class="player-grid">
+                <div class="player-column">
+                    <label>Opening Bowler:</label>
+                    <select id="bowler-select" class="player-select-dropdown">
+                        <option value="">Choose bowler...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Player Stats Preview -->
+        <div class="player-preview" id="player-preview">
+            <!-- Player stats will be shown here -->
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="confirmPlayerSelection()">✅ Confirm Selection</button>
+            <button class="btn btn-secondary" onclick="closePlayerModal()">❌ Cancel</button>
+        </div>
+    `;
+    
+    // Re-populate the dropdowns and re-attach event listeners
+    if (matchState.battingTeam && matchState.bowlingTeam) {
+        populatePlayerDropdowns();
+        document.getElementById('striker-select').addEventListener('change', updatePlayerPreview);
+        document.getElementById('non-striker-select').addEventListener('change', updatePlayerPreview);
+        document.getElementById('bowler-select').addEventListener('change', updatePlayerPreview);
     }
 }
 
@@ -696,18 +882,150 @@ function selectNewBowler() {
     );
     
     if (availableBowlers.length > 0) {
-        // For demo, auto-select next bowler with highest bowling skill
-        matchState.currentBowler = availableBowlers.sort((a, b) => b.bowling_skill - a.bowling_skill)[0];
-        
-        if (!matchState.currentBowler.oversBowled) {
-            matchState.currentBowler.oversBowled = 0;
-            matchState.currentBowler.runsConceded = 0;
-            matchState.currentBowler.wicketsTaken = 0;
-        }
-        
-        document.getElementById('bowler-name').textContent = matchState.currentBowler.name;
-        showNotification(`${matchState.currentBowler.name} to bowl`, 'info');
+        // Open modal for user to select new bowler
+        openNewBowlerModal(availableBowlers);
+    } else {
+        // No more bowlers available
+        showNotification('No more bowlers available - all have bowled their maximum overs', 'info');
     }
+}
+
+function openNewBowlerModal(availableBowlers) {
+    const modal = document.getElementById('player-modal');
+    
+    // Update modal title and content for new bowler selection
+    document.getElementById('modal-title').textContent = '⚾ Select New Bowler';
+    
+    // Clear previous content
+    const modalContent = modal.querySelector('.modal-content');
+    
+    // Create new bowler selection interface
+    modalContent.innerHTML = `
+        <h3 id="modal-title">⚾ Select New Bowler</h3>
+        
+        <div class="selection-section">
+            <h4>🔄 New Bowler Selection</h4>
+            <p>Choose who will bowl the next over:</p>
+            
+            <div class="player-grid">
+                <div class="player-column">
+                    <label>New Bowler:</label>
+                    <select id="new-bowler-select" class="player-select-dropdown">
+                        <option value="">Choose new bowler...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Player Stats Preview -->
+        <div class="player-preview" id="player-preview">
+            <!-- Player stats will be shown here -->
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="confirmNewBowler()">✅ Confirm Selection</button>
+            <button class="btn btn-secondary" onclick="closeNewBowlerModal()">❌ Cancel</button>
+        </div>
+    `;
+    
+    // Populate dropdown with available bowlers
+    populateNewBowlerDropdown(availableBowlers);
+    
+    // Show modal
+    modal.style.display = 'block';
+    
+    // Add event listener for bowler selection changes
+    document.getElementById('new-bowler-select').addEventListener('change', updateNewBowlerPreview);
+}
+
+function populateNewBowlerDropdown(availableBowlers) {
+    const bowlerSelect = document.getElementById('new-bowler-select');
+    
+    // Clear existing options
+    bowlerSelect.innerHTML = '<option value="">Choose new bowler...</option>';
+    
+    // Populate dropdown with available bowlers
+    availableBowlers.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.id;
+        const oversBowled = (player.oversBowled || 0).toFixed(1);
+        const maxOvers = MATCH_DATA.match_type === 'T20' ? 4 : 10;
+        const remainingOvers = (maxOvers - (player.oversBowled || 0)).toFixed(1);
+        option.textContent = `${player.name} (${player.bowling_type}, Skill: ${player.bowling_skill}, Overs: ${oversBowled}/${maxOvers})`;
+        bowlerSelect.appendChild(option);
+    });
+}
+
+function updateNewBowlerPreview() {
+    const bowlerId = document.getElementById('new-bowler-select').value;
+    const previewDiv = document.getElementById('player-preview');
+    
+    if (bowlerId) {
+        const bowler = matchState.bowlingTeam.players.find(p => p.id == bowlerId);
+        const oversBowled = (bowler.oversBowled || 0).toFixed(1);
+        const maxOvers = MATCH_DATA.match_type === 'T20' ? 4 : 10;
+        const remainingOvers = (maxOvers - (bowler.oversBowled || 0)).toFixed(1);
+        
+        previewDiv.innerHTML = `
+            <h4>📊 New Bowler Preview</h4>
+            <div class="player-preview-item">
+                <strong>⚾ New Bowler:</strong> ${bowler.name}<br>
+                Type: ${bowler.bowling_type} | Skill: ${bowler.bowling_skill}<br>
+                Overs Bowled: ${oversBowled}/${maxOvers} | Remaining: ${remainingOvers}
+            </div>
+        `;
+    } else {
+        previewDiv.innerHTML = '<h4>📊 New Bowler Preview</h4><p>Select a bowler to see their stats</p>';
+    }
+}
+
+function confirmNewBowler() {
+    const bowlerId = document.getElementById('new-bowler-select').value;
+    
+    if (!bowlerId) {
+        showNotification('Please select a new bowler', 'error');
+        return;
+    }
+    
+    // Get the selected bowler
+    const newBowler = matchState.bowlingTeam.players.find(p => p.id == bowlerId);
+    
+    // Set as new bowler
+    matchState.currentBowler = newBowler;
+    
+    // Initialize bowler stats if not already set
+    if (!matchState.currentBowler.oversBowled) {
+        matchState.currentBowler.oversBowled = 0;
+        matchState.currentBowler.runsConceded = 0;
+        matchState.currentBowler.wicketsTaken = 0;
+    }
+    
+    // Close modal
+    closeNewBowlerModal();
+    
+    // Update display
+    document.getElementById('bowler-name').textContent = matchState.currentBowler.name;
+    
+    // Show confirmation
+    showNotification(`${matchState.currentBowler.name} to bowl`, 'success');
+    
+    // Update ticker
+    updateTicker(`⚾ ${matchState.currentBowler.name} will bowl the next over • ${matchState.currentBowler.bowling_type} bowling`);
+}
+
+function closeNewBowlerModal() {
+    const modal = document.getElementById('player-modal');
+    modal.style.display = 'none';
+    
+    // Remove event listener
+    const bowlerSelect = document.getElementById('new-bowler-select');
+    if (bowlerSelect) {
+        bowlerSelect.removeEventListener('change', updateNewBowlerPreview);
+    }
+    
+    // Reset modal to original opening players selection content
+    resetModalToOriginal();
 }
 
 function checkInningsCompletion() {
@@ -780,9 +1098,10 @@ function updateMatchDisplay() {
     document.getElementById('team1-name').textContent = MATCH_DATA.team1.short_name;
     document.getElementById('team2-name').textContent = MATCH_DATA.team2.short_name;
     
-    // Update initial scores
-    document.getElementById('team1-score').textContent = `${matchState.totalRuns}/${matchState.wicketsLost}`;
-    document.getElementById('team1-rr').textContent = 'RR: 0.00';
+          // Update initial scores
+      document.getElementById('team1-score').textContent = `${matchState.totalRuns}/${matchState.wicketsLost}`;
+      const runRate = (((matchState.totalRuns || 0) * 6) / (matchState.currentBalls || 1)).toFixed(2);
+      document.getElementById('team1-rr').textContent = `RR: ${runRate}`;
     
     // Initialize batting and bowling lists
     updateBattingCard();
@@ -835,14 +1154,14 @@ function updateBowlingCard() {
             const row = document.createElement('div');
             row.className = 'bowling-row';
             
-            const overs = player.oversBowled || 0;
+            const overs = (player.oversBowled || 0).toFixed(1);
             const runs = player.runsConceded || 0;
             const wickets = player.wicketsTaken || 0;
             const economy = overs > 0 ? (runs / overs).toFixed(2) : '0.00';
             
             row.innerHTML = `
                 <div>${player.name}</div>
-                <div>${overs}.0</div>
+                <div>${overs}</div>
                 <div>${runs}</div>
                 <div>${wickets}</div>
                 <div>${economy}</div>
@@ -1242,9 +1561,10 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         background: #1a1a1a;
         border-radius: 15px;
         padding: 30px;
-        max-width: 500px;
+        max-width: 600px;
         width: 90%;
         text-align: center;
+        box-sizing: border-box;
     }
 
     .player-select {
@@ -1305,6 +1625,8 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
+        width: 100%;
+        max-width: 100%;
     }
 
     .player-column {
@@ -1327,6 +1649,11 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         color: #fff;
         font-size: 0.9rem;
         cursor: pointer;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .player-select-dropdown:focus {
@@ -1339,6 +1666,9 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         background: #1a1a1a;
         color: #fff;
         padding: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .player-preview {

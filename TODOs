@@ -1,11 +1,15 @@
 
 
 Simulate delivery function (in routes.py) - API/engine
-Batting & Bowling Stats updates on the right
-Updating bowler & batsman
 Innings transition
 Add players to db
+Add locations to db
 Modifiers/multipliers
+
+Animations for major events
+
+Partnerships
+
 
 Current matches list
 
@@ -14,4 +18,3 @@ Authorization/login
 
 Team creation flow
 
-Animations for major events
