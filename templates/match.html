@@ -15,6 +15,7 @@
 let matchState = {
     currentInnings: null,
     battingTeam: null,
+    battingOrderPlayers: null,
     bowlingTeam: null,
     striker: null,
     nonStriker: null,
@@ -192,6 +193,7 @@ function handleTossDecision(data) {
     
     // Update match state
     matchState.battingTeam = data.batting_first === MATCH_DATA.team1.short_name ? MATCH_DATA.team1 : MATCH_DATA.team2;
+    matchState.battingOrderPlayers = [];
     matchState.bowlingTeam = data.batting_first === MATCH_DATA.team1.short_name ? MATCH_DATA.team2 : MATCH_DATA.team1;
     
     // Update ticker
@@ -358,7 +360,9 @@ function confirmPlayerSelection() {
     
     // Set the selected players
     matchState.striker = matchState.battingTeam.players.find(p => p.id == strikerId);
+    matchState.battingOrderPlayers.push(matchState.striker);
     matchState.nonStriker = matchState.battingTeam.players.find(p => p.id == nonStrikerId);
+    matchState.battingOrderPlayers.push(matchState.nonStriker);
     matchState.currentBowler = matchState.bowlingTeam.players.find(p => p.id == bowlerId);
     
     // Close modal
@@ -478,7 +482,7 @@ function handleDeliveryUpdate(data) {
     }
     
     // Check for over completion
-    if (data.ballNumber === 6 && data.extras === 0) {
+    if ((data.ballNumber % 6 === 0) && data.extras === 0) {
         completeOver();
     }
     
@@ -513,8 +517,9 @@ function addBallToOver(data) {
 function updateScoreAfterDelivery(data) {
     // Update team score (this would come from server in real implementation)
     matchState.totalRuns = (matchState.totalRuns || 0) + data.runs + data.extras;
-    matchState.wicketsLost = (matchState.wicketsLost || 0) + (data.isWicket ? 1 : 0);
+    // matchState.wicketsLost = (matchState.wicketsLost || 0) + (data.isWicket ? 1 : 0);  // No need to double-count wicket fall
     matchState.ballsFaced = (matchState.ballsFaced || 0) + (data.extras > 0 ? 0 : 1);
+    matchState.currentBalls = (matchState.currentBalls || 0) + (data.extras > 0 ? 0 : 1);
     
     // Update display
     const team1Score = document.getElementById('team1-score');
@@ -545,10 +550,10 @@ function updatePlayerStats(data) {
         document.getElementById('striker-stats').innerHTML = 
             `${matchState.striker.runs}* (${matchState.striker.ballsFaced}) | SR: ${sr}<br>4s: ${matchState.striker.fours || 0} • 6s: ${matchState.striker.sixes || 0}`;
     }
-    
+
     // Update bowler stats
     if (matchState.currentBowler) {
-        matchState.currentBowler.oversBowled = (matchState.currentBowler.oversBowled || 0);
+        matchState.currentBowler.oversBowled = (matchState.currentBowler.oversBowled || 0) + (data.extras > 0 ? 0 : 0.1);
         matchState.currentBowler.runsConceded = (matchState.currentBowler.runsConceded || 0) + data.runs + data.extras;
         matchState.currentBowler.wicketsTaken = (matchState.currentBowler.wicketsTaken || 0) + (data.isWicket ? 1 : 0);
         
@@ -559,6 +564,7 @@ function updatePlayerStats(data) {
     if (data.runs % 2 === 1 && !data.isWicket) {
         swapStrike();
     }
+    updateMatchDisplay();
 }
 
 function swapStrike() {
@@ -627,7 +633,7 @@ function handleWicket(data) {
     }
     
     // Increment wickets
-    matchState.wicketsLost = (matchState.wicketsLost || 0) + 1;
+    matchState.wicketsLost = (matchState.wicketsLost || 0) + 1; // No need to double-count wicket fall
     
     // Check if innings should end
     if (matchState.wicketsLost >= 10) {
@@ -651,6 +657,7 @@ function selectNewBatsman() {
     if (availableBatsmen.length > 0) {
         // For demo, auto-select next batsman
         matchState.striker = availableBatsmen[0];
+        matchState.battingOrderPlayers.push(matchState.striker);
         matchState.striker.hasAlreadyBatted = true;
         matchState.striker.runs = 0;
         matchState.striker.ballsFaced = 0;
@@ -671,7 +678,7 @@ function completeOver() {
     
     // Update bowler overs
     if (matchState.currentBowler) {
-        matchState.currentBowler.oversBowled = (matchState.currentBowler.oversBowled || 0) + 1;
+        matchState.currentBowler.oversBowled = Math.floor(matchState.currentBowler.oversBowled || 0)  + 1;
     }
     
     // Select new bowler
@@ -788,7 +795,8 @@ function updateBattingCard() {
     
     battingList.innerHTML = '';
     
-    matchState.battingTeam.players.forEach(player => {
+    // matchState.battingTeam.players.forEach(player => {
+    matchState.battingOrderPlayers.forEach(player => {
         const row = document.createElement('div');
         row.className = 'batting-row';
         
@@ -806,7 +814,7 @@ function updateBattingCard() {
         
         row.innerHTML = `
             <div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>
-            <div>${player.isOut ? runs : runs + '*'}</div>
+            <div>${(player.id === matchState.striker?.id || player.id === matchState.nonStriker?.id) ? runs  + '*': runs}</div>
             <div>${balls}</div>
             <div>${sr}</div>
         `;
