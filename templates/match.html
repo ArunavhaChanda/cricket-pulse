@@ -13,7 +13,7 @@
 {% block extra_js %}
 <script>
 let matchState = {
-    currentInnings: null,
+    currentInnings: 1, // 1 for first innings, 2 for second innings
     battingTeam: null,
     battingOrderPlayers: null,
     bowlingTeam: null,
@@ -21,7 +21,11 @@ let matchState = {
     nonStriker: null,
     currentBowler: null,
     isAutoSimulating: false,
-    autoInterval: null
+    autoInterval: null,
+    firstInningsScore: 0, // Store first innings total
+    target: 0, // Target for second innings
+    secondInningsBattingTeam: null, // Team batting in second innings
+    secondInningsBowlingTeam: null // Team bowling in second innings
 };
 
 // Initialize match interface
@@ -234,6 +238,17 @@ function handleMatchStart(data) {
     
     // Update status
     updateMatchStatus('live');
+    
+    // Initialize first innings
+    matchState.currentInnings = 1;
+    matchState.totalRuns = 0;
+    matchState.wicketsLost = 0;
+    matchState.ballsFaced = 0;
+    matchState.currentBalls = 0;
+    matchState.battingOrderPlayers = [];
+    
+    // Clear projection info
+    document.getElementById('projection-info').textContent = '';
     
     // Initialize match display
     updateMatchDisplay();
@@ -528,11 +543,37 @@ function updateScoreAfterDelivery(data) {
     team1Score.textContent = `${matchState.totalRuns}/${matchState.wicketsLost}`;
     
     const overs = Math.floor(matchState.ballsFaced / 6) + (matchState.ballsFaced % 6) / 10;
-    const runRate = overs > 0 ? (matchState.totalRuns / overs).toFixed(2) : '0.00';
-    team1RR.textContent = `RR: ${runRate}`;
+    const runRate = (matchState.ballsFaced > 0) ? (matchState.totalRuns * 6 / matchState.ballsFaced).toFixed(2) : '0.00';
+    
+    if (matchState.currentInnings === 1) {
+        // First innings - show run rate only        
+        team1RR.textContent = `RR: ${runRate}`;
+        
+        // Show projected score for first innings
+        const projectedScore = Math.round(runRate * MATCH_DATA.max_overs);
+        document.getElementById('projection-info').textContent = `Projected score: ${projectedScore}`;
+    } else {
+        // Second innings - show run rate and required run rate
+        const remainingRuns = matchState.target - matchState.totalRuns;
+        const remainingBalls = (MATCH_DATA.max_overs * 6) - matchState.ballsFaced;
+        const requiredRunRate = remainingBalls > 0 ? (remainingRuns * 6 / remainingBalls).toFixed(2) : '0.00';
+        
+        team1RR.textContent = `RR: ${runRate} | RRR: ${requiredRunRate}`;
+        
+        // Show runs needed for second innings
+        document.getElementById('projection-info').textContent = `Need ${remainingRuns} runs from ${remainingBalls} balls`;
+    }
     
     // Update overs display
     document.getElementById('match-overs').textContent = `${overs.toFixed(1)}/${MATCH_DATA.max_overs} overs`;
+    
+    // Check if target is reached in second innings
+    if (matchState.currentInnings === 2 && matchState.totalRuns >= matchState.target) {
+        updateTicker(`🎯 TARGET ACHIEVED! ${matchState.battingTeam.short_name} wins the match!`);
+        setTimeout(() => {
+            endInnings();
+        }, 2000);
+    }
 }
 
 function updatePlayerStats(data) {
@@ -1031,24 +1072,96 @@ function closeNewBowlerModal() {
 function checkInningsCompletion() {
     const totalBalls = matchState.ballsFaced || 0;
     const maxBalls = MATCH_DATA.max_overs * 6;
-    
+
     if (totalBalls >= maxBalls || matchState.wicketsLost >= 10) {
+        // Overs completed or all wickets fallen
         endInnings();
+    }
+    
+    if (matchState.currentInnings > 1) {
+        // Second innings - end when target reached, overs complete, or all wickets fall
+        if (matchState.totalRuns >= matchState.target) {
+            // Target achieved - batting team wins
+            endInnings();
+        }
     }
 }
 
-function endInnings() {
-    showNotification('Innings completed!', 'success');
-    updateTicker(`🏏 First innings ends • ${matchState.battingTeam.short_name}: ${matchState.totalRuns}/${matchState.wicketsLost}`);
+function endMatch() {
+    // Determine match result
+    let result;
+    if (matchState.currentInnings === 2) {
+        if (matchState.totalRuns >= matchState.target) {
+            result = `${matchState.battingTeam.short_name} won by ${10 - matchState.wicketsLost} wickets`;
+        } else {
+            result = `${matchState.bowlingTeam.short_name} won by ${matchState.firstInningsScore - matchState.totalRuns} runs`;
+        }
+    }
     
-    // Disable simulation controls temporarily
+    showNotification(`Match completed! ${result}`, 'success');
+    updateTicker(`🏏 Match Over • ${result}`);
+    
+    // Disable all simulation controls
     document.getElementById('next-ball-btn').disabled = true;
     document.getElementById('auto-sim-btn').disabled = true;
     
-    // In a full implementation, this would start the second innings
-    setTimeout(() => {
-        showNotification('Second innings would start here...', 'info');
-    }, 3000);
+    // Update match status
+    updateMatchStatus('completed');
+}
+
+function endInnings() {
+    if (matchState.currentInnings === 1) {
+        // First innings completed
+        matchState.firstInningsScore = matchState.totalRuns;
+        matchState.target = matchState.firstInningsScore + 1;
+        
+        showNotification('First innings completed!', 'success');
+        updateTicker(`🏏 First innings ends • ${matchState.battingTeam.short_name}: ${matchState.totalRuns}/${matchState.wicketsLost} • Target: ${matchState.target}`);
+        
+        // Switch teams for second innings
+        matchState.secondInningsBattingTeam = matchState.bowlingTeam;
+        matchState.secondInningsBowlingTeam = matchState.battingTeam;
+        
+        // Start second innings
+        setTimeout(() => {
+            startSecondInnings();
+        }, 2000);
+    } else {
+        // Second innings completed - match over
+        showNotification('Match completed!', 'success');
+        endMatch();
+    }
+}
+
+function startSecondInnings() {
+    // Update match state for second innings
+    matchState.currentInnings = 2;
+    matchState.battingTeam = matchState.secondInningsBattingTeam;
+    matchState.bowlingTeam = matchState.secondInningsBowlingTeam;
+    
+    // Reset match stats for second innings
+    matchState.totalRuns = 0;
+    matchState.wicketsLost = 0;
+    matchState.ballsFaced = 0;
+    matchState.currentBalls = 0;
+    matchState.battingOrderPlayers = [];
+    
+    // Update display for second innings
+    updateMatchDisplay();
+    
+    // Show second innings controls
+    document.getElementById('live-controls').style.display = 'block';
+    document.getElementById('player-status').style.display = 'grid';
+    document.getElementById('over-display').style.display = 'block';
+    
+    // Update status
+    updateMatchStatus('live');
+    
+    // Prompt for opening batsmen and bowler selection for second innings
+    selectOpeningPlayers();
+    
+    showNotification('Second innings starting!', 'info');
+    updateTicker(`🏏 Second innings begins • ${matchState.battingTeam.short_name} need ${matchState.target} to win`);
 }
 
 function autoSimulate() {
@@ -1094,14 +1207,43 @@ function updateMatchDisplay() {
         matchState.ballsFaced = 0;
     }
     
-    // Update team names
-    document.getElementById('team1-name').textContent = MATCH_DATA.team1.short_name;
-    document.getElementById('team2-name').textContent = MATCH_DATA.team2.short_name;
-    
-          // Update initial scores
-      document.getElementById('team1-score').textContent = `${matchState.totalRuns}/${matchState.wicketsLost}`;
-      const runRate = (((matchState.totalRuns || 0) * 6) / (matchState.currentBalls || 1)).toFixed(2);
-      document.getElementById('team1-rr').textContent = `RR: ${runRate}`;
+    if (matchState.currentInnings === 1) {
+        // First innings
+        document.getElementById('team1-name').textContent = matchState.battingTeam ? matchState.battingTeam.short_name : MATCH_DATA.team1.short_name;
+        document.getElementById('team2-name').textContent = matchState.bowlingTeam ? matchState.bowlingTeam.short_name : MATCH_DATA.team2.short_name;
+        
+        // Update scores for first innings
+        document.getElementById('team1-score').textContent = `${matchState.totalRuns}/${matchState.wicketsLost}`;
+        document.getElementById('team2-score').textContent = '-';
+        document.getElementById('team2-rr').textContent = 'Target: -';
+        
+        const runRate = (((matchState.totalRuns || 0) * 6) / (matchState.currentBalls || 1)).toFixed(2);
+        document.getElementById('team1-rr').textContent = `RR: ${runRate}`;
+        
+        // Show projected score for first innings
+        const projectedScore = Math.round(runRate * MATCH_DATA.max_overs);
+        document.getElementById('projection-info').textContent = `Projected score: ${projectedScore}`;
+    } else {
+        // Second innings
+        document.getElementById('team1-name').textContent = matchState.battingTeam.short_name;
+        document.getElementById('team2-name').textContent = matchState.bowlingTeam.short_name;
+        
+        // Update scores for second innings
+        document.getElementById('team1-score').textContent = `${matchState.totalRuns}/${matchState.wicketsLost}`;
+        document.getElementById('team2-score').textContent = `${matchState.firstInningsScore}/10`;
+        
+        // Calculate run rate and required run rate
+        const runRate = (((matchState.totalRuns || 0) * 6) / (matchState.currentBalls || 1)).toFixed(2);
+        const remainingRuns = matchState.target - matchState.totalRuns;
+        const remainingBalls = (MATCH_DATA.max_overs * 6) - matchState.currentBalls;
+        const requiredRunRate = remainingBalls > 0 ? (remainingRuns * 6 / remainingBalls).toFixed(2) : '0.00';
+        
+        document.getElementById('team1-rr').textContent = `RR: ${runRate} | RRR: ${requiredRunRate}`;
+        document.getElementById('team2-rr').textContent = `Target: ${matchState.target}`;
+        
+        // Show runs needed for second innings
+        document.getElementById('projection-info').textContent = `Need ${remainingRuns} runs from ${remainingBalls} balls`;
+    }
     
     // Initialize batting and bowling lists
     updateBattingCard();
@@ -1157,7 +1299,9 @@ function updateBowlingCard() {
             const overs = (player.oversBowled || 0).toFixed(1);
             const runs = player.runsConceded || 0;
             const wickets = player.wicketsTaken || 0;
-            const economy = overs > 0 ? (runs / overs).toFixed(2) : '0.00';
+            const ballsBowled = Math.floor(overs) * 6 + ((overs * 10) % 10)
+
+            const economy = ballsBowled > 0 ? (runs * 6 / ballsBowled).toFixed(2) : '0.00';
             
             row.innerHTML = `
                 <div>${player.name}</div>
@@ -1212,8 +1356,10 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
 
     .team-info {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 20px;
+        gap: 5px;
+        min-width: 120px;
     }
 
     .team-name {
@@ -1229,6 +1375,16 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
     .run-rate {
         font-size: 0.9rem;
         opacity: 0.9;
+    }
+
+    .projection-info {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        color: #90caf9;
+        margin-top: 2px;
+        display: block;
+        width: 100%;
+        text-align: center;
     }
 
     .match-info {
@@ -1720,6 +1876,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
             <div class="team-name" id="team1-name">{{ match.team1.short_name }}</div>
             <div class="team-score" id="team1-score">0/0</div>
             <div class="run-rate" id="team1-rr">RR: 0.00</div>
+            <div class="projection-info" id="projection-info"></div>
         </div>
         <div class="match-info">
             <div id="match-type">{{ match.match_type }} Match</div>
