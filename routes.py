@@ -428,18 +428,18 @@ def register_api_routes(app, db, socketio):
         })
 
 
-    # WebSocket Events for Real-time Updates
-    @socketio.on('join_match')
-    def on_join_match(data):
-        match_id = data['match_id']
-        join_room(match_id)
-        emit('joined_match', {'match_id': match_id})
+    # # WebSocket Events for Real-time Updates
+    # @socketio.on('join_match')
+    # def on_join_match(data):
+    #     match_id = data['match_id']
+    #     join_room(match_id)
+    #     emit('joined_match', {'match_id': match_id})
 
-    @socketio.on('leave_match')
-    def on_leave_match(data):
-        match_id = data['match_id']
-        leave_room(match_id)
-        emit('left_match', {'match_id': match_id})
+    # @socketio.on('leave_match')
+    # def on_leave_match(data):
+    #     match_id = data['match_id']
+    #     leave_room(match_id)
+    #     emit('left_match', {'match_id': match_id})
 
     # Cricket Game Logic Integration Points
     class CricketGameEngine:

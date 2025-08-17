@@ -1,7 +1,7 @@
 <!-- templates/match.html -->
 {% extends "base.html" %}
 
-{% block title %}{{ match.team1.short_name }} vs {{ match.team2.short_name }} - Cricket Simulator{% endblock %}
+{% block title %}{{ match.team1.short_name }} vs {{ match.team2.short_name }} - Cricket Pulse{% endblock %}
 {% block subtitle %}Live Cricket Match Simulation{% endblock %}
 
 {% block extra_css %}
@@ -90,7 +90,15 @@ function loadMatchState() {
 }
 
 function conductToss() {
-    const call = document.querySelector('input[name="toss-call"]:checked').value;
+    const selectedRadio = document.querySelector('input[name="toss-call"]:checked');
+    let call; // Declare call variable outside the if/else blocks
+    
+    if (selectedRadio) {
+        call = selectedRadio.value;
+    } else {
+        console.error('No toss call selected; heads given as default');
+        call = "heads";
+    }
     
     fetch(`/api/matches/${MATCH_DATA.match_id}/toss`, {
         method: 'POST',
@@ -236,18 +244,141 @@ function handleMatchStart(data) {
 }
 
 function selectOpeningPlayers() {
-    // This would open modals to select opening batsmen and first bowler
-    // For now, we'll automatically select them (in a real implementation, you'd want user selection)
-    
-    // Auto-select first two batsmen and first bowler for demo purposes
+    // Open modal for user to select opening players
     if (matchState.battingTeam && matchState.bowlingTeam) {
-        matchState.striker = matchState.battingTeam.players[0];
-        matchState.nonStriker = matchState.battingTeam.players[1];
-        matchState.currentBowler = matchState.bowlingTeam.players.find(p => p.bowling_skill > 60) || matchState.bowlingTeam.players[0];
-        
-        updatePlayerDisplay();
-        showNotification('Opening players selected automatically', 'info');
+        openPlayerSelectionModal();
+    } else {
+        showNotification('Teams not loaded yet', 'error');
     }
+}
+
+function openPlayerSelectionModal() {
+    const modal = document.getElementById('player-modal');
+    
+    // Populate dropdowns with available players
+    populatePlayerDropdowns();
+    
+    // Show modal
+    modal.style.display = 'block';
+    
+    // Add event listeners for player selection changes
+    document.getElementById('striker-select').addEventListener('change', updatePlayerPreview);
+    document.getElementById('non-striker-select').addEventListener('change', updatePlayerPreview);
+    document.getElementById('bowler-select').addEventListener('change', updatePlayerPreview);
+}
+
+function populatePlayerDropdowns() {
+    const strikerSelect = document.getElementById('striker-select');
+    const nonStrikerSelect = document.getElementById('non-striker-select');
+    const bowlerSelect = document.getElementById('bowler-select');
+    
+    // Clear existing options
+    strikerSelect.innerHTML = '<option value="">Choose striker...</option>';
+    nonStrikerSelect.innerHTML = '<option value="">Choose non-striker...</option>';
+    bowlerSelect.innerHTML = '<option value="">Choose bowler...</option>';
+    
+    // Populate batsmen dropdowns
+    matchState.battingTeam.players.forEach(player => {
+        const strikerOption = document.createElement('option');
+        strikerOption.value = player.id;
+        strikerOption.textContent = `${player.name} (vs Pace: ${player.batting_vs_pace}, vs Spin: ${player.batting_vs_spin}, Aggression: ${player.batting_aggression})`;
+        strikerSelect.appendChild(strikerOption);
+        
+        const nonStrikerOption = document.createElement('option');
+        nonStrikerOption.value = player.id;
+        nonStrikerOption.textContent = `${player.name} (vs Pace: ${player.batting_vs_pace}, vs Spin: ${player.batting_vs_spin}, Aggression: ${player.batting_aggression})`;
+        nonStrikerSelect.appendChild(nonStrikerOption);
+    });
+    
+    // Populate bowler dropdown
+    matchState.bowlingTeam.players.forEach(player => {
+        const bowlerOption = document.createElement('option');
+        bowlerOption.value = player.id;
+        bowlerOption.textContent = `${player.name} (Bowl: ${player.bowling_skill})`;
+        bowlerSelect.appendChild(bowlerOption);
+    });
+}
+
+function updatePlayerPreview() {
+    const strikerId = document.getElementById('striker-select').value;
+    const nonStrikerId = document.getElementById('non-striker-select').value;
+    const bowlerId = document.getElementById('bowler-select').value;
+    
+    const previewDiv = document.getElementById('player-preview');
+    let previewHTML = '<h4>📊 Player Preview</h4>';
+    
+    if (strikerId) {
+        const striker = matchState.battingTeam.players.find(p => p.id == strikerId);
+        previewHTML += `
+            <div class="player-preview-item">
+                <strong>🏏 Striker:</strong> ${striker.name}<br>
+                Skill vs Pace: ${striker.batting_vs_pace} | Skill vs Spin: ${striker.batting_vs_spin} | Aggression: ${striker.batting_aggression}
+            </div>
+        `;
+    }
+    
+    if (nonStrikerId) {
+        const nonStriker = matchState.battingTeam.players.find(p => p.id == nonStrikerId);
+        previewHTML += `
+            <div class="player-preview-item">
+                <strong>🏏 Non-striker:</strong> ${nonStriker.name}<br>
+                Skill vs Pace: ${nonStriker.batting_vs_pace} | Skill vs Spin: ${nonStriker.batting_vs_spin} | Aggression: ${nonStriker.batting_aggression}
+            </div>
+        `;
+    }
+    
+    if (bowlerId) {
+        const bowler = matchState.bowlingTeam.players.find(p => p.id == bowlerId);
+        previewHTML += `
+            <div class="player-preview-item">
+                <strong>⚾ Bowler:</strong> ${bowler.name}<br>
+                Bowling: ${bowler.bowling_skill}
+            </div>
+        `;
+    }
+    
+    previewDiv.innerHTML = previewHTML;
+}
+
+function confirmPlayerSelection() {
+    const strikerId = document.getElementById('striker-select').value;
+    const nonStrikerId = document.getElementById('non-striker-select').value;
+    const bowlerId = document.getElementById('bowler-select').value;
+    
+    // Validate selection
+    if (!strikerId || !nonStrikerId || !bowlerId) {
+        showNotification('Please select all three players', 'error');
+        return;
+    }
+    
+    if (strikerId === nonStrikerId) {
+        showNotification('Striker and non-striker must be different players', 'error');
+        return;
+    }
+    
+    // Set the selected players
+    matchState.striker = matchState.battingTeam.players.find(p => p.id == strikerId);
+    matchState.nonStriker = matchState.battingTeam.players.find(p => p.id == nonStrikerId);
+    matchState.currentBowler = matchState.bowlingTeam.players.find(p => p.id == bowlerId);
+    
+    // Close modal
+    closePlayerModal();
+    
+    // Update display
+    updatePlayerDisplay();
+    
+    // Show confirmation
+    showNotification(`Opening players selected: ${matchState.striker.name}, ${matchState.nonStriker.name}, ${matchState.currentBowler.name}`, 'success');
+}
+
+function closePlayerModal() {
+    const modal = document.getElementById('player-modal');
+    modal.style.display = 'none';
+    
+    // Remove event listeners
+    document.getElementById('striker-select').removeEventListener('change', updatePlayerPreview);
+    document.getElementById('non-striker-select').removeEventListener('change', updatePlayerPreview);
+    document.getElementById('bowler-select').removeEventListener('change', updatePlayerPreview);
 }
 
 function simulateDelivery() {
@@ -1146,6 +1277,100 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
     }
+
+    /* Player Selection Modal Styles */
+    .selection-section {
+        margin-bottom: 25px;
+        padding: 15px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+        border: 1px solid rgba(33,150,243,0.2);
+    }
+
+    .selection-section h4 {
+        margin-bottom: 15px;
+        color: #2196f3;
+        font-size: 1.1rem;
+    }
+
+    .player-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .player-column {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .player-column label {
+        font-weight: bold;
+        color: #e3f2fd;
+        font-size: 0.9rem;
+    }
+
+    .player-select-dropdown {
+        padding: 10px;
+        background: rgba(0,0,0,0.5);
+        border: 1px solid rgba(33,150,243,0.3);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+    .player-select-dropdown:focus {
+        outline: none;
+        border-color: #2196f3;
+        box-shadow: 0 0 10px rgba(33,150,243,0.3);
+    }
+
+    .player-select-dropdown option {
+        background: #1a1a1a;
+        color: #fff;
+        padding: 8px;
+    }
+
+    .player-preview {
+        margin: 20px 0;
+        padding: 15px;
+        background: rgba(0,0,0,0.4);
+        border-radius: 10px;
+        border: 1px solid rgba(33,150,243,0.2);
+    }
+
+    .player-preview h4 {
+        margin-bottom: 15px;
+        color: #4caf50;
+        text-align: center;
+    }
+
+    .player-preview-item {
+        margin-bottom: 12px;
+        padding: 10px;
+        background: rgba(33,150,243,0.1);
+        border-radius: 6px;
+        border-left: 3px solid #2196f3;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 25px;
+    }
+
+    .btn-secondary {
+        background: linear-gradient(45deg, #6c757d, #495057);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(108,117,125,0.3);
+    }
 </style>
 {% endblock %}
 
@@ -1274,11 +1499,50 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
 <!-- Player Selection Modal -->
 <div class="modal" id="player-modal">
     <div class="modal-content">
-        <h3 id="modal-title">Select Player</h3>
-        <div class="player-select" id="player-select">
-            <!-- Player options will be populated here -->
+        <h3 id="modal-title">Select Opening Players</h3>
+        
+        <!-- Batsmen Selection -->
+        <div class="selection-section">
+            <h4>🏏 Select Opening Batsmen</h4>
+            <div class="player-grid">
+                <div class="player-column">
+                    <label>Striker (on strike):</label>
+                    <select id="striker-select" class="player-select-dropdown">
+                        <option value="">Choose striker...</option>
+                    </select>
+                </div>
+                <div class="player-column">
+                    <label>Non-striker:</label>
+                    <select id="non-striker-select" class="player-select-dropdown">
+                        <option value="">Choose non-striker...</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <button class="btn btn-primary" onclick="closePlayerModal()">Cancel</button>
+        
+        <!-- Bowler Selection -->
+        <div class="selection-section">
+            <h4>⚾ Select Opening Bowler</h4>
+            <div class="player-grid">
+                <div class="player-column">
+                    <label>Opening Bowler:</label>
+                    <select id="bowler-select" class="player-select-dropdown">
+                        <option value="">Choose bowler...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Player Stats Preview -->
+        <div class="player-preview" id="player-preview">
+            <!-- Player stats will be shown here -->
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="confirmPlayerSelection()">✅ Confirm Selection</button>
+            <button class="btn btn-secondary" onclick="closePlayerModal()">❌ Cancel</button>
+        </div>
     </div>
 </div>
 
