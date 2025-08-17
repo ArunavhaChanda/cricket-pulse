@@ -905,13 +905,24 @@ function completeOver() {
     
     // Update bowler overs
     if (matchState.currentBowler) {
-        matchState.currentBowler.oversBowled = Math.floor(matchState.currentBowler.oversBowled || 0)  + 1;
+        matchState.currentBowler.oversBowled = Math.floor(matchState.currentBowler.oversBowled || 0) + 1;
     }
     
-    // Select new bowler
-    selectNewBowler();
+    // Check if innings should end after this over
+    const totalBalls = matchState.ballsFaced || 0;
+    const maxBalls = MATCH_DATA.max_overs * 6;
     
-    showNotification('Over completed!', 'info');
+    if (totalBalls >= maxBalls) {
+        // Innings completed due to overs
+        showNotification('Innings completed - all overs bowled!', 'info');
+        setTimeout(() => {
+            endInnings();
+        }, 1000);
+    } else {
+        // More overs to go - select new bowler
+        selectNewBowler();
+        showNotification('Over completed!', 'info');
+    }
 }
 
 function selectNewBowler() {
@@ -1076,6 +1087,7 @@ function checkInningsCompletion() {
     if (totalBalls >= maxBalls || matchState.wicketsLost >= 10) {
         // Overs completed or all wickets fallen
         endInnings();
+        return; // Exit early to prevent further processing
     }
     
     if (matchState.currentInnings > 1) {
@@ -1083,6 +1095,7 @@ function checkInningsCompletion() {
         if (matchState.totalRuns >= matchState.target) {
             // Target achieved - batting team wins
             endInnings();
+            return; // Exit early to prevent further processing
         }
     }
 }
@@ -1345,21 +1358,26 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         background: linear-gradient(90deg, rgba(0,0,0,0.9), rgba(25,118,210,0.3), rgba(0,0,0,0.9));
         border-bottom: 3px solid #2196f3;
         color: #e3f2fd;
-        height: 80px;
+        min-height: 80px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 30px;
+        padding: 20px 30px;
         font-size: 1rem;
         font-weight: bold;
     }
 
-    .team-info {
+    .team-section {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 5px;
-        min-width: 120px;
+        min-width: 200px;
+    }
+
+    .team-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
     }
 
     .team-name {
@@ -1876,7 +1894,6 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
             <div class="team-name" id="team1-name">{{ match.team1.short_name }}</div>
             <div class="team-score" id="team1-score">0/0</div>
             <div class="run-rate" id="team1-rr">RR: 0.00</div>
-            <div class="projection-info" id="projection-info"></div>
         </div>
         <div class="match-info">
             <div id="match-type">{{ match.match_type }} Match</div>
@@ -1885,11 +1902,14 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 <span class="status-indicator status-{{ match.status }}" id="status-indicator"></span>
                 <span id="match-status">{{ match.status.title() }}</span>
             </div>
+            <div class="projection-info" id="projection-info"></div>
         </div>
-        <div class="team-info">
-            <div class="run-rate" id="team2-rr">Target: -</div>
-            <div class="team-score" id="team2-score">-</div>
-            <div class="team-name" id="team2-name">{{ match.team2.short_name }}</div>
+        <div class="team-section">
+            <div class="team-info">
+                <div class="run-rate" id="team2-rr">Target: -</div>
+                <div class="team-score" id="team2-score">-</div>
+                <div class="team-name" id="team2-name">{{ match.team2.short_name }}</div>
+            </div>
         </div>
     </div>
 
