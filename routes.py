@@ -3,6 +3,7 @@
 from flask import request, jsonify, render_template
 from flask_socketio import emit
 from cricket_engine import CricketGameEngine
+from simengine.delivery_result import DeliveryResult
 import uuid
 import random
 
@@ -308,96 +309,119 @@ def register_api_routes(app, db, socketio):
 
     @app.route('/api/matches/<match_id>/simulate-delivery', methods=['POST'])
     def simulate_delivery(match_id):
-        '''Simulate a single delivery - main integration point with your cricket logic'''
-        match = Match.query.filter_by(match_id=match_id).first_or_404()
-        
-        if match.status not in ['first_innings', 'second_innings']:
-            return jsonify({'error': 'Match not in progress'}), 400
-        
-        data = request.json
-        bowler_id = data.get('bowler_id')
-        striker_id = data.get('striker_id')
-        non_striker_id = data.get('non_striker_id')
-        
-        if not all([bowler_id, striker_id, non_striker_id]):
-            return jsonify({'error': 'Missing player IDs'}), 400
-        
-        # Get current innings
-        current_innings = Innings.query.filter_by(
-            match_id=match.id,
-            innings_number=match.current_innings
-        ).first()
-        
-        if not current_innings:
-            return jsonify({'error': 'Current innings not found'}), 400
-        
-        # Initialize cricket engine with your logic
-        engine = CricketGameEngine(match)
-        
-        # Calculate current over and ball
-        total_balls = len(current_innings.deliveries)
-        current_over = (total_balls // 6) + 1
-        ball_in_over = (total_balls % 6) + 1
-        
-        # Simulate delivery using your cricket logic
-        delivery_result = engine.simulate_delivery(
-            bowler_id, striker_id, non_striker_id, current_over, ball_in_over
-        )
-        
-        # Save delivery to database
-        delivery = Delivery(
-            innings_id=current_innings.id,
-            over_number=current_over,
-            ball_number=ball_in_over,
-            bowler_id=bowler_id,
-            striker_id=striker_id,
-            non_striker_id=non_striker_id,
-            delivery_type=delivery_result.delivery_type,
-            stroke_type=delivery_result.stroke_type,
-            runs_scored=delivery_result.runs_scored,
-            extras=delivery_result.extras,
-            is_wicket=delivery_result.is_wicket,
-            dismissal_type=delivery_result.dismissal_type,
-            total_runs_after=current_innings.total_runs + delivery_result.runs_scored + delivery_result.extras,
-            wickets_after=current_innings.wickets_lost + (1 if delivery_result.is_wicket else 0)
-        )
-        
-        db.session.add(delivery)
-        
-        # Update innings state
-        current_innings.total_runs += delivery_result.runs_scored + delivery_result.extras
-        if delivery_result.is_wicket:
-            current_innings.wickets_lost += 1
-        
-        # Update overs completed (only count legal deliveries)
-        if delivery_result.extras == 0:
-            current_innings.current_over_balls += 1
-            if current_innings.current_over_balls >= 6:
-                current_innings.overs_completed += 1
-                current_innings.current_over_balls = 0
-        
-        # Update player stats
-        # ... (implement stat updates)
-        
-        db.session.commit()
-        
-        # Emit delivery update via WebSocket
-        socketio.emit('delivery_update', {
-            'match_id': match_id,
-            'delivery_result': delivery_result.__dict__,
-            'total_runs': current_innings.total_runs,
-            'wickets_lost': current_innings.wickets_lost,
-            'overs_completed': current_innings.overs_completed
-        }, room=match_id)
-        
-        return jsonify({
-            'delivery_result': delivery_result.__dict__,
-            'match_state': {
+        '''Simulate a single delivery - main integration point for your cricket logic'''
+        try:
+            print(f"DEBUG: Starting delivery simulation for match {match_id}")
+            
+            match = Match.query.filter_by(match_id=match_id).first_or_404()
+            print(f"DEBUG: Found match with status: {match.status}")
+            
+            if match.status not in ['first_innings', 'second_innings']:
+                return jsonify({'error': 'Match not in progress'}), 400
+            
+            data = request.json
+            print(f"DEBUG: Received data: {data}")
+            
+            bowler_id = data.get('bowler_id')
+            striker_id = data.get('striker_id')
+            non_striker_id = data.get('non_striker_id')
+            fielder_id = data.get('fielder_id')
+            wicketkeeper_id = data.get('wicketkeeper_id')
+            
+            print(f"DEBUG: Player IDs - Bowler: {bowler_id}, Striker: {striker_id}, Non-striker: {non_striker_id}, Fielder: {fielder_id}, Wicketkeeper: {wicketkeeper_id}")
+            
+            if not all([bowler_id, striker_id, non_striker_id, fielder_id]):
+                return jsonify({'error': 'Missing player IDs'}), 400
+            
+            # Get current innings
+            current_innings = Innings.query.filter_by(
+                match_id=match.id,
+                innings_number=match.current_innings
+            ).first()
+            
+            if not current_innings:
+                return jsonify({'error': 'Current innings not found'}), 400
+            
+            print(f"DEBUG: Found innings {current_innings.id}")
+            
+            # Initialize cricket engine with your logic
+            print("DEBUG: Initializing CricketGameEngine")
+            engine = CricketGameEngine(match)
+            
+            # Calculate current over and ball
+            total_balls = len(current_innings.deliveries)
+            current_over = (total_balls // 6) + 1
+            ball_in_over = (total_balls % 6) + 1
+            
+            print(f"DEBUG: Simulating delivery - Over: {current_over}, Ball: {ball_in_over}")
+            
+            # Simulate delivery using your cricket logic
+            delivery_result = engine.simulate_delivery(
+                bowler_id, striker_id, non_striker_id, fielder_id, wicketkeeper_id, current_over, ball_in_over
+            )
+            
+            print(f"DEBUG: Delivery result: {delivery_result}")
+            
+            # Save delivery to database
+            delivery = Delivery(
+                innings_id=current_innings.id,
+                over_number=current_over,
+                ball_number=ball_in_over,
+                bowler_id=bowler_id,
+                striker_id=striker_id,
+                non_striker_id=non_striker_id,
+                delivery_type=delivery_result.delivery_type,
+                stroke_type=delivery_result.stroke_type,
+                runs_scored=delivery_result.runs_scored,
+                extras=delivery_result.extras,
+                is_wicket=delivery_result.is_wicket,
+                dismissal_type=delivery_result.dismissal_type,
+                total_runs_after=current_innings.total_runs + delivery_result.runs_scored + delivery_result.extras,
+                wickets_after=current_innings.wickets_lost + (1 if delivery_result.is_wicket else 0)
+            )
+            
+            db.session.add(delivery)
+            
+            # Update innings state
+            current_innings.total_runs += delivery_result.runs_scored + delivery_result.extras
+            if delivery_result.is_wicket:
+                current_innings.wickets_lost += 1
+            
+            # Update overs completed (only count legal deliveries)
+            if delivery_result.extras == 0:
+                current_innings.current_over_balls += 1
+                if current_innings.current_over_balls >= 6:
+                    current_innings.overs_completed += 1
+                    current_innings.current_over_balls = 0
+            
+            print("DEBUG: Committing to database")
+            db.session.commit()
+            
+            # Emit delivery update via WebSocket
+            socketio.emit('delivery_update', {
+                'match_id': match_id,
+                'delivery_result': delivery_result.__dict__,
                 'total_runs': current_innings.total_runs,
                 'wickets_lost': current_innings.wickets_lost,
                 'overs_completed': current_innings.overs_completed
-            }
-        })
+            }, room=match_id)
+            
+            print("DEBUG: Delivery simulation completed successfully")
+            
+            return jsonify({
+                'delivery_result': delivery_result.__dict__,
+                'match_state': {
+                    'total_runs': current_innings.total_runs,
+                    'wickets_lost': current_innings.wickets_lost,
+                    'overs_completed': current_innings.overs_completed
+                }
+            })
+            
+        except Exception as e:
+            print(f"ERROR in simulate_delivery: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
     
     # Additional API endpoints for dashboard

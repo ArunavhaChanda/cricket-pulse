@@ -1,0 +1,23 @@
+team_name,team_short,name,batting_vs_pace,batting_vs_spin,batting_aggression,bowling_skill,fielding_skill,bowling_type,is_captain,is_wicketkeeper
+Kolkata Knight Riders,KKR,Ajinkya Rahane,87,82,82,38,75,pace,True,False
+Kolkata Knight Riders,KKR,Sunil Narine,75,78,88,86,70,spin,False,False
+Kolkata Knight Riders,KKR,Quinton de Kock,84,82,83,32,89,pace,False,True
+Kolkata Knight Riders,KKR,Venkatesh Iyer,81,83,85,72,79,pace,False,False
+Kolkata Knight Riders,KKR,Angkrish Raghuvanshi,82,80,83,41,85,spin,False,False
+Kolkata Knight Riders,KKR,Rinku Singh,84,82,89,43,92,spin,False,False
+Kolkata Knight Riders,KKR,Ramandeep Singh,75,76,87,72,79,pace,False,False
+Kolkata Knight Riders,KKR,Andre Russell,79,77,91,80,76,pace,False,False
+Kolkata Knight Riders,KKR,Anrich Nortje,41,34,72,85,79,pace,False,False
+Kolkata Knight Riders,KKR,Harshit Rana,61,52,70,80,76,pace,False,False
+Kolkata Knight Riders,KKR,Varun Chakravarthy,55,59,78,86,65,spin,False,False
+Royal Challengers Bengaluru,RCB,Phil Salt,85,82,87,38,88,pace,False,True
+Royal Challengers Bengaluru,RCB,Rajat Patidar,83,84,87,43,79,spin,True,False
+Royal Challengers Bengaluru,RCB,Virat Kohli,91,87,80,64,86,pace,False,False
+Royal Challengers Bengaluru,RCB,Devdutt Padikkal,82,84,83,27,78,spin,False,False
+Royal Challengers Bengaluru,RCB,Jitesh Sharma,79,78,84,28,84,spin,False,False
+Royal Challengers Bengaluru,RCB,Liam Livingstone,82,76,88,74,84,spin,False,False
+Royal Challengers Bengaluru,RCB,Krunal Pandya,77,80,84,83,80,spin,False,False
+Royal Challengers Bengaluru,RCB,Tim David,79,77,85,62,83,spin,False,False
+Royal Challengers Bengaluru,RCB,Josh Hazlewood,39,29,58,86,80,pace,False,False
+Royal Challengers Bengaluru,RCB,Bhuvneshwar Kumar,64,56,70,87,71,pace,False,False
+Royal Challengers Bengaluru,RCB,Suyash Sharma,15,21,63,82,74,spin,False,False

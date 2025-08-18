@@ -1,18 +1,11 @@
 # cricket_engine.py - Integration point for your existing Python logic
 import random
 import json
+from simengine.delivery_result import DeliveryResult
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 
-@dataclass
-class DeliveryResult:
-    delivery_type: str  # 'no_ball', 'wide', 'fair', 'good'
-    stroke_type: str    # 'miss', 'dot', 'hit', 'slog'
-    runs_scored: int
-    extras: int
-    is_wicket: bool
-    dismissal_type: Optional[str] = None
-    fielder_involved: Optional[int] = None
+EASY_BOWLING_ON = False
 
 class CricketGameEngine:
     '''
@@ -62,7 +55,8 @@ class CricketGameEngine:
                 adjusted[attr] *= multiplier
         return adjusted
     
-    def simulate_delivery(self, bowler_id: int, striker_id: int, non_striker_id: int, 
+    def simulate_delivery(self, bowler_id: int, striker_id: int, non_striker_id: int, fielder_id: int,
+                         wicketkeeper_id: int,
                          current_over: int, ball_in_over: int) -> DeliveryResult:
         '''
         Simulate a single delivery using your existing Python logic.
@@ -87,6 +81,9 @@ class CricketGameEngine:
         bowler = Player.query.get(bowler_id)
         striker = Player.query.get(striker_id)
         non_striker = Player.query.get(non_striker_id)
+        fielder = Player.query.get(fielder_id)
+        wicketkeeper = Player.query.get(wicketkeeper_id)
+        max_overs = 20 if self.match.match_type == 'T20' else 50
         
         # Apply location adjustments
         bowler_attrs = self.apply_location_adjustments({
@@ -99,75 +96,97 @@ class CricketGameEngine:
             'batting_vs_spin': striker.batting_vs_spin,
             'batting_aggression': striker.batting_aggression
         })
+
+        fielder_attrs = self.apply_location_adjustments({
+            'fielding_skill': fielder.fielding_skill
+        })
+
+        wicketkeeper_attrs = self.apply_location_adjustments({
+            'fielding_skill': wicketkeeper.fielding_skill
+        })
+
+
+
+        # Add free hit adjustments
+
         
-        # PLACEHOLDER: Your probability matrices and simulation logic would go here
-        # This is where you'd call your existing Python cricket simulation
+        #
+        # 	if is_free_hit and not is_no_ball and (delivery_type != 1): # not a wide
+		# is_free_hit = False
+        is_free_hit = False
+        
+
+
+        # Import events only when needed to avoid circular import issues
+        import simengine.events as events
+        return events.delivery(striker_attrs['batting_vs_pace'], striker_attrs['batting_vs_spin'], striker_attrs['batting_aggression'], bowler_attrs['bowling_skill'], bowler_attrs['bowling_type'], wicketkeeper_attrs['fielding_skill'], fielder_attrs['fielding_skill'], is_free_hit, EASY_BOWLING_ON, max_overs)
+
         
         # For now, return a random outcome for demonstration
-        return self._generate_mock_delivery()
+        # return self._generate_mock_delivery()
     
-    def _generate_mock_delivery(self) -> DeliveryResult:
-        '''Generate a mock delivery for demonstration purposes'''
-        # Probability-based outcome generation
-        rand = random.random()
+    # def _generate_mock_delivery(self) -> DeliveryResult:
+    #     '''Generate a mock delivery for demonstration purposes'''
+    #     # Probability-based outcome generation
+    #     rand = random.random()
         
-        if rand < 0.02:  # 2% chance of no ball
-            return DeliveryResult(
-                delivery_type='no_ball',
-                stroke_type='hit',
-                runs_scored=random.choice([0, 1, 2, 4, 6]),
-                extras=1,
-                is_wicket=False
-            )
-        elif rand < 0.04:  # 2% chance of wide
-            return DeliveryResult(
-                delivery_type='wide',
-                stroke_type='miss',
-                runs_scored=0,
-                extras=1,
-                is_wicket=False
-            )
-        elif rand < 0.08:  # 4% chance of wicket
-            return DeliveryResult(
-                delivery_type='fair',
-                stroke_type='miss',
-                runs_scored=0,
-                extras=0,
-                is_wicket=True,
-                dismissal_type=random.choice(['bowled', 'lbw', 'caught', 'stumped'])
-            )
-        elif rand < 0.35:  # 27% chance of dot ball
-            return DeliveryResult(
-                delivery_type='fair',
-                stroke_type='dot',
-                runs_scored=0,
-                extras=0,
-                is_wicket=False
-            )
-        elif rand < 0.50:  # 15% chance of 4
-            return DeliveryResult(
-                delivery_type='fair',
-                stroke_type='hit',
-                runs_scored=4,
-                extras=0,
-                is_wicket=False
-            )
-        elif rand < 0.55:  # 5% chance of 6
-            return DeliveryResult(
-                delivery_type='fair',
-                stroke_type='slog',
-                runs_scored=6,
-                extras=0,
-                is_wicket=False
-            )
-        else:  # Remaining chance for 1, 2, or 3 runs
-            return DeliveryResult(
-                delivery_type='fair',
-                stroke_type='hit',
-                runs_scored=random.choice([1, 1, 1, 2, 2, 3]),  # Weighted toward singles
-                extras=0,
-                is_wicket=False
-            )
+    #     if rand < 0.02:  # 2% chance of no ball
+    #         return DeliveryResult(
+    #             delivery_type='no_ball',
+    #             stroke_type='hit',
+    #             runs_scored=random.choice([0, 1, 2, 4, 6]),
+    #             extras=1,
+    #             is_wicket=False
+    #         )
+    #     elif rand < 0.04:  # 2% chance of wide
+    #         return DeliveryResult(
+    #             delivery_type='wide',
+    #             stroke_type='miss',
+    #             runs_scored=0,
+    #             extras=1,
+    #             is_wicket=False
+    #         )
+    #     elif rand < 0.08:  # 4% chance of wicket
+    #         return DeliveryResult(
+    #             delivery_type='fair',
+    #             stroke_type='miss',
+    #             runs_scored=0,
+    #             extras=0,
+    #             is_wicket=True,
+    #             dismissal_type=random.choice(['bowled', 'lbw', 'caught', 'stumped'])
+    #         )
+    #     elif rand < 0.35:  # 27% chance of dot ball
+    #         return DeliveryResult(
+    #             delivery_type='fair',
+    #             stroke_type='dot',
+    #             runs_scored=0,
+    #             extras=0,
+    #             is_wicket=False
+    #         )
+    #     elif rand < 0.50:  # 15% chance of 4
+    #         return DeliveryResult(
+    #             delivery_type='fair',
+    #             stroke_type='hit',
+    #             runs_scored=4,
+    #             extras=0,
+    #             is_wicket=False
+    #         )
+    #     elif rand < 0.55:  # 5% chance of 6
+    #         return DeliveryResult(
+    #             delivery_type='fair',
+    #             stroke_type='slog',
+    #             runs_scored=6,
+    #             extras=0,
+    #             is_wicket=False
+    #         )
+    #     else:  # Remaining chance for 1, 2, or 3 runs
+    #         return DeliveryResult(
+    #             delivery_type='fair',
+    #             stroke_type='hit',
+    #             runs_scored=random.choice([1, 1, 1, 2, 2, 3]),  # Weighted toward singles
+    #             extras=0,
+    #             is_wicket=False
+    #         )
     
     def get_available_bowlers(self, innings_id: int, current_bowler_id: int = None) -> List[Dict]:
         '''Get list of bowlers available for the next over'''

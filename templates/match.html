@@ -20,6 +20,8 @@ let matchState = {
     striker: null,
     nonStriker: null,
     currentBowler: null,
+    fielder: null,
+    wicketkeeper: null,
     isAutoSimulating: false,
     autoInterval: null,
     firstInningsScore: 0, // Store first innings total
@@ -81,6 +83,7 @@ function setupWebSocketListeners() {
                     runs: data.delivery_result.runs_scored || 0,
                     extras: data.delivery_result.extras || 0,
                     isWicket: data.delivery_result.is_wicket || false,
+                    dismissal_type: data.delivery_result.dismissal_type || null,
                     ballNumber: (matchState.currentBalls || 0) + 1,
                     overNumber: Math.floor((matchState.currentBalls || 0) / 6) + 1
                 };
@@ -267,6 +270,7 @@ function handleMatchStart(data) {
     matchState.ballsFaced = 0;
     matchState.currentBalls = 0;
     matchState.battingOrderPlayers = [];
+    matchState.wicketkeeper = matchState.bowlingTeam.players.find(p => p.is_wicketkeeper);
     
     // Clear projection info and previous result
     document.getElementById('projection-info').textContent = '';
@@ -431,6 +435,7 @@ function simulateDelivery() {
     // This is where you'd integrate with your Python cricket simulation logic
     // For now, we'll create a mock delivery
     const mockDelivery = generateMockDelivery();
+    matchState.fielder = matchState.battingTeam.players[Math.floor(Math.random() * 11)];
     
     // Send delivery to server for processing
     fetch(`/api/matches/${MATCH_DATA.match_id}/simulate-delivery`, {
@@ -441,7 +446,9 @@ function simulateDelivery() {
         body: JSON.stringify({
             bowler_id: matchState.currentBowler.id,
             striker_id: matchState.striker.id,
-            non_striker_id: matchState.nonStriker.id
+            non_striker_id: matchState.nonStriker.id,
+            fielder_id: matchState.fielder.id,
+            wicketkeeper_id: matchState.wicketkeeper.id
         })
     })
     .then(response => response.json())
@@ -762,7 +769,33 @@ function updateTickerWithDelivery(data) {
     let commentary = '';
     
     if (data.isWicket) {
-        commentary = `🔥 WICKET! ${matchState.striker.name} is out • ${matchState.currentBowler.name} strikes`;
+        // Enhanced wicket commentary with dismissal type
+        let dismissalText = '';
+        if (data.dismissal_type) {
+            switch(data.dismissal_type) {
+                case 'bowled':
+                    dismissalText = 'BOWLED!';
+                    break;
+                case 'lbw':
+                    dismissalText = 'LBW!';
+                    break;
+                case 'caught':
+                    dismissalText = 'CAUGHT!';
+                    break;
+                case 'stumped':
+                    dismissalText = 'STUMPED!';
+                    break;
+                case 'caught behind':
+                    dismissalText = 'CAUGHT BEHIND!';
+                    break;
+                default:
+                    dismissalText = 'OUT!';
+            }
+        } else {
+            dismissalText = 'OUT!';
+        }
+        
+        commentary = `🔥 WICKET! ${matchState.striker.name} ${dismissalText} • ${matchState.currentBowler.name} strikes`;
     } else if (data.runs === 6) {
         commentary = `🚀 SIX! ${matchState.striker.name} sends it into the stands • Magnificent shot`;
     } else if (data.runs === 4) {
@@ -1277,6 +1310,7 @@ function startSecondInnings() {
     matchState.ballsFaced = 0;
     matchState.currentBalls = 0;
     matchState.battingOrderPlayers = [];
+    matchState.wicketkeeper = matchState.bowlingTeam.players.find(p => p.is_wicketkeeper);
     
     // Update display for second innings
     updateMatchDisplay();
