@@ -25,7 +25,8 @@ let matchState = {
     firstInningsScore: 0, // Store first innings total
     target: 0, // Target for second innings
     secondInningsBattingTeam: null, // Team batting in second innings
-    secondInningsBowlingTeam: null // Team bowling in second innings
+    secondInningsBowlingTeam: null, // Team bowling in second innings
+    matchResult: null // Store final match result
 };
 
 // Initialize match interface
@@ -71,10 +72,30 @@ function setupWebSocketListeners() {
     
     socket.on('delivery_update', function(data) {
         if (data.match_id === MATCH_DATA.match_id) {
-            handleDeliveryUpdate(data);
+            console.log('WebSocket delivery_update received:', data);
+            
+            // Process the server data properly
+            if (data.delivery_result) {
+                const processedData = {
+                    type: processDeliveryType(data.delivery_result.runs_scored, data.delivery_result.is_wicket, data.delivery_result.extras) || 'unknown',
+                    runs: data.delivery_result.runs_scored || 0,
+                    extras: data.delivery_result.extras || 0,
+                    isWicket: data.delivery_result.is_wicket || false,
+                    ballNumber: (matchState.currentBalls || 0) + 1,
+                    overNumber: Math.floor((matchState.currentBalls || 0) / 6) + 1
+                };
+                
+                console.log('Processed WebSocket data:', processedData);
+                handleDeliveryUpdate({
+                    match_id: data.match_id,
+                    ...processedData
+                });
+            } else {
+                console.error('No delivery_result in WebSocket data:', data);
+            }
         }
     });
-    
+
     socket.on('innings_complete', function(data) {
         if (data.match_id === MATCH_DATA.match_id) {
             handleInningsComplete(data);
@@ -247,8 +268,9 @@ function handleMatchStart(data) {
     matchState.currentBalls = 0;
     matchState.battingOrderPlayers = [];
     
-    // Clear projection info
+    // Clear projection info and previous result
     document.getElementById('projection-info').textContent = '';
+    matchState.matchResult = null;
     
     // Initialize match display
     updateMatchDisplay();
@@ -423,12 +445,31 @@ function simulateDelivery() {
         })
     })
     .then(response => response.json())
-    .then(data => {
+        .then(data => {
         if (data.error) {
             showNotification(data.error, 'error');
         } else {
             // Delivery result will be handled by WebSocket
-            console.log('Delivery simulated:', data);
+            console.log('Server response received:', data);
+            console.log('Waiting for WebSocket delivery_update event...');
+            
+            // // Check if we have server data or need to use mock
+            // if (data && data.delivery_result) {
+            //     console.log('Using server data');
+            //     console.log('Current balls:', matchState.currentBalls);
+            //     deliveryData = processDeliveryData(data);
+            // } else {
+            //     console.log('Using mock data');
+            //     deliveryData = mockDelivery;
+            // }
+            
+            // handleDeliveryUpdate({
+            //     match_id: MATCH_DATA.match_id,
+            //     ...deliveryData
+            // });
+
+            // Don't call handleDeliveryUpdate here - let WebSocket handle it
+            // This prevents duplicate processing
         }
     })
     .catch(error => {
@@ -439,6 +480,69 @@ function simulateDelivery() {
             ...mockDelivery
         });
     });
+}
+
+function processDeliveryType(runsScored, isWicket, extras) {
+    let delivery_type = "dot";
+    // Try to access the data with fallbacks
+    if (isWicket) {
+        delivery_type = "wicket";
+    } else if (extras > 0) {
+        delivery_type = "wide"; // Handle no ball
+    } else if (runsScored > 0) {
+        if (runsScored == 4) {
+            delivery_type = "four";
+        } else if (runsScored == 6) {
+            delivery_type = "six";
+        } else {
+            delivery_type = "runs";
+        }
+    }
+    return delivery_type;
+}
+
+function processDeliveryData(data) {
+    // Debug: Log the entire data structure
+    console.log('Raw data received:', data);
+    console.log('Data keys:', Object.keys(data));
+    
+    // Check if data.delivery_result exists
+    if (data.delivery_result) {
+        console.log('delivery_result keys:', Object.keys(data.delivery_result));
+    }
+    
+    let delivery_type = "dot";
+    // Try to access the data with fallbacks
+    if (data.delivery_result && data.delivery_result.is_wicket) {
+        delivery_type = "wicket";
+    } else if (data.delivery_result && data.delivery_result.extras > 0) {
+        delivery_type = "wide"; // Handle no ball
+    } else if (data.delivery_result && data.delivery_result.runs_scored > 0) {
+        if (data.delivery_result.runs_scored == 4) {
+            delivery_type = "four";
+        } else if (data.delivery_result.runs_scored == 6) {
+            delivery_type = "six";
+        } else {
+            delivery_type = "runs";
+        }
+    }
+
+    console.log('Delivery type:', delivery_type);
+
+    const outcome = {
+        type: delivery_type,
+        runs: data.delivery_result?.runs_scored || data.runs || 0,
+        extras: data.delivery_result?.extras || data.extras || 0,
+        isWicket: data.delivery_result?.is_wicket || data.isWicket || false
+    };
+    
+    console.log('Processed outcome:', outcome);
+    
+    return {
+        ...outcome,
+        ballNumber: (matchState.currentBalls || 0) + 1,
+        overNumber: Math.floor((matchState.currentBalls || 0) / 6) + 1
+    };
 }
 
 function generateMockDelivery() {
@@ -458,11 +562,15 @@ function generateMockDelivery() {
     const weights = [30, 25, 15, 8, 12, 5, 3, 1, 1]; // Probability weights
     const randomIndex = weightedRandom(weights);
     
-    return {
+    const mockDelivery = {
         ...outcomes[randomIndex],
         ballNumber: (matchState.currentBalls || 0) + 1,
         overNumber: Math.floor((matchState.currentBalls || 0) / 6) + 1
     };
+    
+    console.log('Current balls:', matchState.currentBalls);
+    console.log('Generated mock delivery:', mockDelivery);
+    return mockDelivery;
 }
 
 function weightedRandom(weights) {
@@ -541,10 +649,15 @@ function updateScoreAfterDelivery(data) {
     const team1RR = document.getElementById('team1-rr');
     
     team1Score.textContent = `${matchState.totalRuns}/${matchState.wicketsLost}`;
+
     
     const overs = Math.floor(matchState.ballsFaced / 6) + (matchState.ballsFaced % 6) / 10;
     const runRate = (matchState.ballsFaced > 0) ? (matchState.totalRuns * 6 / matchState.ballsFaced).toFixed(2) : '0.00';
-    
+
+    console.log('Current balls:', matchState.currentBalls);
+    console.log('Balls faced:', matchState.ballsFaced);
+    console.log('Overs:', overs);
+
     if (matchState.currentInnings === 1) {
         // First innings - show run rate only        
         team1RR.textContent = `RR: ${runRate}`;
@@ -1111,8 +1224,14 @@ function endMatch() {
         }
     }
     
+    // Store the result for display
+    matchState.matchResult = result;
+    
     showNotification(`Match completed! ${result}`, 'success');
     updateTicker(`🏏 Match Over • ${result}`);
+    
+    // Update projection info to show result
+    document.getElementById('projection-info').textContent = `🏆 ${result}`;
     
     // Disable all simulation controls
     document.getElementById('next-ball-btn').disabled = true;
@@ -1256,6 +1375,11 @@ function updateMatchDisplay() {
         
         // Show runs needed for second innings
         document.getElementById('projection-info').textContent = `Need ${remainingRuns} runs from ${remainingBalls} balls`;
+    }
+    
+    // Check if match is completed and show result
+    if (matchState.matchResult) {
+        document.getElementById('projection-info').textContent = `🏆 ${matchState.matchResult}`;
     }
     
     // Initialize batting and bowling lists

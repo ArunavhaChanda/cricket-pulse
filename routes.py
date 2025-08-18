@@ -442,47 +442,47 @@ def register_api_routes(app, db, socketio):
     #     emit('left_match', {'match_id': match_id})
 
     # Cricket Game Logic Integration Points
-    class CricketGameEngine:
-        """
-        This class will integrate with your existing Python cricket logic.
-        Replace the stub methods with calls to your actual game engine.
-        """
+    # class CricketGameEngine:
+    #     """
+    #     This class will integrate with your existing Python cricket logic.
+    #     Replace the stub methods with calls to your actual game engine.
+    #     """
         
-        def __init__(self, match):
-            self.match = match
-            self.location_multipliers = LOCATION_MULTIPLIERS.get(
-                match.location, 
-                LOCATION_MULTIPLIERS['default']
-            )
+    #     def __init__(self, match):
+    #         self.match = match
+    #         self.location_multipliers = LOCATION_MULTIPLIERS.get(
+    #             match.location, 
+    #             LOCATION_MULTIPLIERS['default']
+    #         )
         
-        def apply_location_adjustments(self, player_attributes):
-            """Apply location-based attribute adjustments"""
-            adjusted = player_attributes.copy()
-            for attr, multiplier in self.location_multipliers.items():
-                if attr in adjusted:
-                    adjusted[attr] *= multiplier
-            return adjusted
+    #     def apply_location_adjustments(self, player_attributes):
+    #         """Apply location-based attribute adjustments"""
+    #         adjusted = player_attributes.copy()
+    #         for attr, multiplier in self.location_multipliers.items():
+    #             if attr in adjusted:
+    #                 adjusted[attr] *= multiplier
+    #         return adjusted
         
-        def simulate_delivery(self, innings_id, bowler_id, striker_id, non_striker_id):
-            """
-            Simulate a single delivery - integrate your Python logic here
-            Returns: delivery_result dict with all the outcome data
-            """
-            # STUB: Replace with your actual delivery simulation
-            # This should return a dict with:
-            # - delivery_type, stroke_type, runs_scored, extras
-            # - is_wicket, dismissal_type, etc.
-            pass
+    #     def simulate_delivery(self, innings_id, bowler_id, striker_id, non_striker_id):
+    #         """
+    #         Simulate a single delivery - integrate your Python logic here
+    #         Returns: delivery_result dict with all the outcome data
+    #         """
+    #         # STUB: Replace with your actual delivery simulation
+    #         # This should return a dict with:
+    #         # - delivery_type, stroke_type, runs_scored, extras
+    #         # - is_wicket, dismissal_type, etc.
+    #         pass
         
-        def get_next_bowler_suggestions(self, innings_id):
-            """Get list of available bowlers for next over"""
-            # STUB: Implement bowler rotation logic
-            pass
+    #     def get_next_bowler_suggestions(self, innings_id):
+    #         """Get list of available bowlers for next over"""
+    #         # STUB: Implement bowler rotation logic
+    #         pass
         
-        def get_next_batsman_suggestions(self, innings_id):
-            """Get list of available batsmen when wicket falls"""
-            # STUB: Implement batting order logic
-            pass
+    #     def get_next_batsman_suggestions(self, innings_id):
+    #         """Get list of available batsmen when wicket falls"""
+    #         # STUB: Implement batting order logic
+    #         pass
 
 def _generate_mock_delivery():
     """Generate mock delivery for demo purposes"""
