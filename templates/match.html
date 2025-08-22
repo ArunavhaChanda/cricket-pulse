@@ -2307,6 +2307,43 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         color: #e3f2fd;
     }
     
+    /* Scorecard Tabs Styling */
+    .scorecard-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 25px;
+        padding: 15px;
+        background: rgba(0,0,0,0.4);
+        border-radius: 10px;
+        border: 1px solid rgba(33,150,243,0.2);
+    }
+    
+    .tab-btn {
+        padding: 12px 24px;
+        background: rgba(33,150,243,0.2);
+        border: 1px solid rgba(33,150,243,0.3);
+        border-radius: 8px;
+        color: #e3f2fd;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .tab-btn:hover {
+        background: rgba(33,150,243,0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(33,150,243,0.3);
+    }
+    
+    .tab-btn.active {
+        background: rgba(33,150,243,0.6);
+        border-color: #2196f3;
+        color: #fff;
+        box-shadow: 0 0 20px rgba(33,150,243,0.5);
+    }
+    
     .scorecard-header-container {
         display: flex;
         justify-content: space-between;
@@ -3020,11 +3057,21 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         const fullScorecard = matchState.scorecardManager.getFullMatchScorecard();
         
         let scorecardHTML = '<div class="full-scorecard">';
-        scorecardHTML += '<h2>🏏 Full Match Scorecard</h2>';
+        
+        // Check if we have multiple innings to show tabs
+        const hasMultipleInnings = fullScorecard.secondInnings && matchState.currentInnings > 1;
+        
+        if (hasMultipleInnings) {
+            // Add tabs for multiple innings
+            scorecardHTML += '<div class="scorecard-tabs">';
+            scorecardHTML += '<button class="tab-btn active" onclick="switchScorecardTab(1)">First Innings</button>';
+            scorecardHTML += '<button class="tab-btn" onclick="switchScorecardTab(2)">Second Innings</button>';
+            scorecardHTML += '</div>';
+        }
         
         // First Innings
         if (fullScorecard.firstInnings) {
-            scorecardHTML += '<div class="innings-section">';
+            scorecardHTML += '<div class="innings-section" id="innings-1">';
             scorecardHTML += '<h3>First Innings</h3>';
             scorecardHTML += '<h4>Batting</h4>';
             scorecardHTML += '<div class="scorecard-table batting-table">';
@@ -3123,7 +3170,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         
         // Second Innings (if completed)
         if (fullScorecard.secondInnings && matchState.currentInnings > 1) {
-            scorecardHTML += '<div class="innings-section">';
+            scorecardHTML += '<div class="innings-section" id="innings-2" style="display: none;">';
             scorecardHTML += '<h3>Second Innings</h3>';
             scorecardHTML += '<h4>Batting</h4>';
             scorecardHTML += '<div class="scorecard-table batting-table">';
@@ -3244,6 +3291,35 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         const modal = document.getElementById('player-modal');
         modal.style.display = 'none';
         resetModalToOriginal();
+    }
+    
+    // Function to switch between scorecard tabs
+    function switchScorecardTab(inningsNumber) {
+        // Hide all innings sections
+        const firstInnings = document.getElementById('innings-1');
+        const secondInnings = document.getElementById('innings-2');
+        
+        if (firstInnings) firstInnings.style.display = 'none';
+        if (secondInnings) secondInnings.style.display = 'none';
+        
+        // Show selected innings
+        if (inningsNumber === 1 && firstInnings) {
+            firstInnings.style.display = 'block';
+        } else if (inningsNumber === 2 && secondInnings) {
+            secondInnings.style.display = 'block';
+        }
+        
+        // Update tab button states
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => btn.classList.remove('active'));
+        
+        // Find and activate the clicked tab
+        const clickedTab = Array.from(tabBtns).find(btn => 
+            btn.textContent.toLowerCase().includes(inningsNumber === 1 ? 'first' : 'second')
+        );
+        if (clickedTab) {
+            clickedTab.classList.add('active');
+        }
     }
 </script>
 {% endblock %}
