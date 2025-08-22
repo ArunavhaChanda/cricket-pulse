@@ -606,18 +606,55 @@ function handleDeliveryUpdate(data) {
     // Update ticker with commentary
     updateTickerWithDelivery(data);
     
-    // Check for wicket
+    // Check for wicket or over completion
     if (data.isWicket) {
-        handleWicket(data);
+        // Show wicket result first, then prompt for next action
+        showDeliveryResult(data, 'wicket');
+    } else if ((data.ballNumber % 6 === 0) && data.extras === 0) {
+        // Show over completion result first, then prompt for next action
+        showDeliveryResult(data, 'over');
+    } else {
+        // Regular delivery - continue normally
+        // Check for innings completion
+        checkInningsCompletion();
     }
+}
+
+function showDeliveryResult(data, resultType) {
+    // Disable the "Next Ball" button temporarily
+    const nextBallBtn = document.getElementById('next-ball-btn');
+    nextBallBtn.disabled = true;
     
-    // Check for over completion
-    if ((data.ballNumber % 6 === 0) && data.extras === 0) {
-        completeOver();
-    }
+    // Show result message
+    // let resultMessage = '';
+    // if (resultType === 'wicket') {
+    //     resultMessage = `🔥 WICKET! ${matchState.striker.name} is out!`;
+    // } else if (resultType === 'over') {
+    //     resultMessage = `🏏 Over completed!`;
+    // }
     
-    // Check for innings completion
-    checkInningsCompletion();
+    // // Update ticker with result
+    // updateTicker(resultMessage);
+    
+    // Wait 2 seconds to show the result, then enable action button
+    setTimeout(() => {
+        if (resultType === 'wicket') {
+            // Change button to "Select Next Batsman"
+            nextBallBtn.textContent = '🏏 Select Next Batsman';
+            nextBallBtn.onclick = () => {
+                handleWicket(data);
+            };
+        } else if (resultType === 'over') {
+            // Change button to "Select Next Bowler"
+            nextBallBtn.textContent = '⚾ Select Next Bowler';
+            nextBallBtn.onclick = () => {
+                completeOver();
+            };
+        }
+        
+        // Re-enable button
+        nextBallBtn.disabled = false;
+    }, 500);
 }
 
 function addBallToOver(data) {
@@ -830,6 +867,9 @@ function handleWicket(data) {
     
     // Select new batsman
     selectNewBatsman();
+    
+    // Reset button to "Next Ball" after selection
+    resetNextBallButton();
 }
 
 function selectNewBatsman() {
@@ -1069,6 +1109,16 @@ function completeOver() {
         selectNewBowler();
         showNotification('Over completed!', 'info');
     }
+    
+    // Reset button to "Next Ball" after selection
+    resetNextBallButton();
+}
+
+function resetNextBallButton() {
+    const nextBallBtn = document.getElementById('next-ball-btn');
+    nextBallBtn.textContent = '🎯 Next Ball';
+    nextBallBtn.onclick = simulateDelivery;
+    nextBallBtn.disabled = false;
 }
 
 function selectNewBowler() {

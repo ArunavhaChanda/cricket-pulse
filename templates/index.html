@@ -496,8 +496,10 @@ function quickStart() {
             }
             
             // Auto-create a quick match with first two complete teams
-            const team1 = completeTeams[0];
-            const team2 = completeTeams[1];
+            // Select 2 random teams
+            const shuffledTeams = completeTeams.sort(() => Math.random() - 0.5);
+            const team1 = shuffledTeams[0];
+            const team2 = shuffledTeams[1];
             
             fetch('/api/matches', {
                 method: 'POST',
