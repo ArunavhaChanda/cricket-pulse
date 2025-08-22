@@ -1228,18 +1228,34 @@ function updatePlayerDisplay() {
     // Update names and stats
     if (matchState.striker) {
         document.getElementById('striker-name').textContent = matchState.striker.name;
-        const strikerSR = matchState.striker.ballsFaced > 0 ? 
-            ((matchState.striker.runs || 0) / matchState.striker.ballsFaced * 100).toFixed(1) : '0.0';
-        document.getElementById('striker-stats').innerHTML = 
-            `${matchState.striker.runs || 0}* (${matchState.striker.ballsFaced || 0}) | SR: ${strikerSR}<br>4s: ${matchState.striker.fours || 0} • 6s: ${matchState.striker.sixes || 0}`;
+        // Get stats from scorecardManager for current innings
+        const strikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.striker.id);
+        if (strikerStats) {
+            const strikerSR = strikerStats.ballsFaced > 0 ? 
+                (strikerStats.runsScored / strikerStats.ballsFaced * 100).toFixed(1) : '0.0';
+            document.getElementById('striker-stats').innerHTML = 
+                `${strikerStats.runsScored}* (${strikerStats.ballsFaced}) | SR: ${strikerSR}<br>4s: ${strikerStats.foursHit} • 6s: ${strikerStats.sixesHit}`;
+        } else {
+            // Fallback if no stats found
+            document.getElementById('striker-stats').innerHTML = 
+                `0* (0) | SR: 0.0<br>4s: 0 • 6s: 0`;
+        }
     }
     
     if (matchState.nonStriker) {
         document.getElementById('non-striker-name').textContent = matchState.nonStriker.name;
-        const nonStrikerSR = matchState.nonStriker.ballsFaced > 0 ? 
-            ((matchState.nonStriker.runs || 0) / matchState.nonStriker.ballsFaced * 100).toFixed(1) : '0.0';
-        document.getElementById('non-striker-stats').innerHTML = 
-            `${matchState.nonStriker.runs || 0}* (${matchState.nonStriker.ballsFaced || 0}) | SR: ${nonStrikerSR}<br>4s: ${matchState.nonStriker.fours || 0} • 6s: ${matchState.nonStriker.sixes || 0}`;
+        // Get stats from scorecardManager for current innings
+        const nonStrikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.nonStriker.id);
+        if (nonStrikerStats) {
+            const nonStrikerSR = nonStrikerStats.ballsFaced > 0 ? 
+                (nonStrikerStats.runsScored / nonStrikerStats.ballsFaced * 100).toFixed(1) : '0.0';
+            document.getElementById('non-striker-stats').innerHTML = 
+                `${nonStrikerStats.runsScored}* (${nonStrikerStats.ballsFaced}) | SR: ${nonStrikerSR}<br>4s: ${nonStrikerStats.foursHit} • 6s: ${nonStrikerStats.sixesHit}`;
+        } else {
+            // Fallback if no stats found
+            document.getElementById('non-striker-stats').innerHTML = 
+                `0* (0) | SR: 0.0<br>4s: 0 • 6s: 0`;
+        }
     }
 }
 
@@ -1454,11 +1470,8 @@ function confirmNewBatsman() {
     matchState.striker = newBatsman;
     matchState.battingOrderPlayers.push(matchState.striker);
     
-    // Initialize batsman stats
-    matchState.striker.runs = 0;
-    matchState.striker.ballsFaced = 0;
-    matchState.striker.fours = 0;
-    matchState.striker.sixes = 0;
+    // Initialize batsman stats in scorecardManager (stats are already initialized to 0)
+    // No need to manually set stats - they're managed by the scorecardManager
     
     // Close modal
     closeNewBatsmanModal();
@@ -1719,12 +1732,8 @@ function confirmNewBowler() {
     // Set as new bowler
     matchState.currentBowler = newBowler;
     
-    // Initialize bowler stats if not already set
-    if (!matchState.currentBowler.oversBowled) {
-        matchState.currentBowler.oversBowled = 0;
-        matchState.currentBowler.runsConceded = 0;
-        matchState.currentBowler.wicketsTaken = 0;
-    }
+    // Bowler stats are managed by scorecardManager - no need to manually initialize
+    // The scorecardManager.initializeInnings() already sets up all player stats
     
     // Close modal
     closeNewBowlerModal();
