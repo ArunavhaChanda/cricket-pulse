@@ -1784,13 +1784,16 @@ function populateNewBowlerDropdown(availableBowlers) {
     bowlerSelect.innerHTML = '<option value="">Choose new bowler...</option>';
     
     // Populate dropdown with available bowlers
-    availableBowlers.forEach(player => {
+    // Sort bowlers by bowling skill in descending order (highest skill first)
+    const sortedBowlers = availableBowlers.sort((a, b) => (b.bowling_skill || 0) - (a.bowling_skill || 0));
+    
+    sortedBowlers.forEach(player => {
         const option = document.createElement('option');
         option.value = player.id;
         const oversBowled = (player.oversBowled || 0).toFixed(1);
         const maxOvers = MATCH_DATA.match_type === 'T20' ? 4 : 10;
         const remainingOvers = (maxOvers - (player.oversBowled || 0)).toFixed(1);
-        option.textContent = `${player.name} (${player.bowling_type}, Skill: ${player.bowling_skill}, Overs: ${oversBowled}/${maxOvers})`;
+        option.textContent = `${player.name} (${player.bowling_skill}) (${player.bowling_type}, Overs: ${oversBowled}/${maxOvers})`;
         bowlerSelect.appendChild(option);
     });
 }
