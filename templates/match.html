@@ -125,6 +125,20 @@
 
 {% block extra_js %}
 <script>
+// Helper function to convert full names to initials
+function nameInitializer(fullPlayerName) {
+    if (!fullPlayerName || typeof fullPlayerName !== 'string') return fullPlayerName;
+    
+    const nameParts = fullPlayerName.trim().split(' ');
+    if (nameParts.length === 1) return fullPlayerName; // Single name, return as is
+    
+    // Take first letter of first name + full last name
+    const firstName = nameParts[0];
+    const lastName = nameParts[nameParts.length - 1];
+    
+    return `${firstName.charAt(0)}. ${lastName}`;
+}
+
 // Stats Classes
 class BattingScore {
     constructor(playerName) {
@@ -642,6 +656,9 @@ function handleTossDecision(data) {
     matchState.firstInningsBattingTeam = matchState.battingTeam; // Store first innings batting team
     matchState.battingOrderPlayers = [];
     matchState.bowlingTeam = data.batting_first === MATCH_DATA.team1.short_name ? MATCH_DATA.team2 : MATCH_DATA.team1;
+
+    document.getElementById('batting-card-title').textContent = `🏏 ${matchState.battingTeam ? matchState.battingTeam.short_name : MATCH_DATA.team1.short_name} Batting Card`;
+    document.getElementById('bowling-card-title').textContent = `⚾ ${matchState.bowlingTeam ? matchState.bowlingTeam.short_name : MATCH_DATA.team2.short_name} Bowling Card`;
     
     // Update ticker
     updateTicker(`🏏 ${data.batting_first} to bat first • ⚾ ${data.bowling_first} to bowl • 🚀 Match starting soon`);
@@ -1956,6 +1973,9 @@ function startSecondInnings() {
     document.getElementById('live-controls').style.display = 'block';
     document.getElementById('player-status').style.display = 'grid';
     document.getElementById('over-display').style.display = 'block';
+
+    document.getElementById('batting-card-title').textContent = `🏏 ${matchState.battingTeam ? matchState.battingTeam.short_name : MATCH_DATA.team1.short_name} Batting Card`;
+    document.getElementById('bowling-card-title').textContent = `⚾ ${matchState.bowlingTeam ? matchState.bowlingTeam.short_name : MATCH_DATA.team2.short_name} Bowling Card`;
     
     // Update status
     updateMatchStatus('live');
@@ -2096,7 +2116,7 @@ function updateBattingCard() {
         const scorecardRow = battingScore.getScorecardRow();
         
         row.innerHTML = `
-            <div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>
+            <div>${nameInitializer(player.name)}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>
             <div>${scorecardRow.score}</div>
             <div>${scorecardRow.strikeRate}</div>
             <div>${scorecardRow.fours}/${scorecardRow.sixes}</div>
@@ -2119,7 +2139,7 @@ function updateBowlingCard() {
         <div>Bowler</div>
         <div>Overs</div>
         <div>Runs</div>
-        <div>Wickets</div>
+        <div>Wkts</div>
         <div>Economy</div>
     `;
     bowlingList.appendChild(headerRow);
@@ -2137,7 +2157,7 @@ function updateBowlingCard() {
             const scorecardRow = bowlingFigures.getScorecardRow();
             
             row.innerHTML = `
-                <div>${scorecardRow.playerName}</div>
+                <div>${nameInitializer(scorecardRow.playerName)}</div>
                 <div>${scorecardRow.overs}</div>
                 <div>${scorecardRow.runs}</div>
                 <div>${scorecardRow.wickets}</div>
@@ -3129,14 +3149,14 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         <!-- Scorecards -->
         <div class="scorecards">
             <div class="scorecard">
-                <div class="scorecard-title">🏏 Batting Card</div>
+                <div class="scorecard-title" id="batting-card-title">🏏 Batting Card</div>
                 <div class="batting-list" id="batting-list">
                     <!-- Batting stats will be populated here -->
                 </div>
             </div>
 
             <div class="scorecard">
-                <div class="scorecard-title">⚾ Bowling Figures</div>
+                <div class="scorecard-title" id="bowling-card-title">⚾ Bowling Card</div>
                 <div class="bowling-list" id="bowling-list">
                     <!-- Bowling stats will be populated here -->
                 </div>
