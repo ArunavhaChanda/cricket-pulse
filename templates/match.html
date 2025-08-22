@@ -2116,7 +2116,7 @@ function updateBattingCard() {
         const scorecardRow = battingScore.getScorecardRow();
         
         row.innerHTML = `
-            <div>${nameInitializer(player.name)}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>
+            <div>${nameInitializer(player.name)}${player.is_captain ? ' (C)' : ''}${player.is_wicketkeeper ? ' (WK)' : ''}</div>
             <div>${scorecardRow.score}</div>
             <div>${scorecardRow.strikeRate}</div>
             <div>${scorecardRow.fours}/${scorecardRow.sixes}</div>
@@ -3350,7 +3350,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 const rowClass = isCurrentlyBatting ? 'scorecard-row current-batsman' : 'scorecard-row';
                 
                 scorecardHTML += `<div class="${rowClass}">`;
-                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (C)' : ''}${player.is_wicketkeeper ? ' (WK)' : ''}</div>`;
                 scorecardHTML += `<div>${row.dismissal || row.bowled}</div>`;
                 scorecardHTML += `<div>${row.score}</div>`;
                 scorecardHTML += `<div>${row.strikeRate}</div>`;
@@ -3368,7 +3368,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 if (hasBatted) return; // Skip if already shown
                 
                 scorecardHTML += '<div class="scorecard-row not-batted">';
-                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (C)' : ''}${player.is_wicketkeeper ? ' (WK)' : ''}</div>`;
                 scorecardHTML += `<div>-</div>`;
                 scorecardHTML += `<div>-</div>`;
                 scorecardHTML += `<div>-</div>`;
@@ -3454,7 +3454,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 const rowClass = isCurrentlyBatting ? 'scorecard-row current-batsman' : 'scorecard-row';
                 
                 scorecardHTML += `<div class="${rowClass}">`;
-                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (C)' : ''}${player.is_wicketkeeper ? ' (WK)' : ''}</div>`;
                 scorecardHTML += `<div>${row.dismissal || row.bowled}</div>`;
                 scorecardHTML += `<div>${row.score}</div>`;
                 scorecardHTML += `<div>${row.strikeRate}</div>`;
@@ -3472,7 +3472,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 if (hasBatted) return; // Skip if already shown
                 
                 scorecardHTML += '<div class="scorecard-row not-batted">';
-                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (C)' : ''}${player.is_wicketkeeper ? ' (WK)' : ''}</div>`;
                 scorecardHTML += `<div>-</div>`;
                 scorecardHTML += `<div>-</div>`;
                 scorecardHTML += `<div>-</div>`;
