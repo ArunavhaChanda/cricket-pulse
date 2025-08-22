@@ -7,6 +7,119 @@
 {% block extra_css %}
 <style>
     /* Add your custom CSS here */
+    
+    /* Event Animation System */
+    .event-animation {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        pointer-events: none;
+        opacity: 0;
+        transition: all 0.5s ease;
+    }
+    
+    .event-animation.animate {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    
+    .event-animation.fade-out {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    
+    .animation-content {
+        text-align: center;
+        padding: 30px 50px;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
+        border: 3px solid;
+        animation: pulseGlow 2s ease-in-out;
+    }
+    
+    .animation-title {
+        font-size: 4rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        text-shadow: 0 0 20px currentColor;
+        animation: textShake 0.5s ease-in-out 0.5s;
+    }
+    
+    .animation-subtitle {
+        font-size: 1.5rem;
+        opacity: 0.9;
+        animation: fadeInUp 0.8s ease-out 0.3s both;
+    }
+    
+    /* Six Animation - Golden and Glowing */
+    .six-animation .animation-content {
+        background: linear-gradient(135deg, rgba(255,215,0,0.9), rgba(255,165,0,0.9));
+        border-color: #ffd700;
+        color: #8b4513;
+    }
+    
+    .six-animation .animation-title {
+        animation: sixBounce 1s ease-out 0.5s;
+    }
+    
+    /* Four Animation - Blue and Electric */
+    .four-animation .animation-content {
+        background: linear-gradient(135deg, rgba(30,144,255,0.9), rgba(0,191,255,0.9));
+        border-color: #1e90ff;
+        color: #fff;
+    }
+    
+    .four-animation .animation-title {
+        animation: fourSlide 1s ease-out 0.5s;
+    }
+    
+    /* Wicket Animation - Red and Fiery */
+    .wicket-animation .animation-content {
+        background: linear-gradient(135deg, rgba(220,20,60,0.9), rgba(255,69,0,0.9));
+        border-color: #dc143c;
+        color: #fff;
+    }
+    
+    .wicket-animation .animation-title {
+        animation: wicketExplode 1s ease-out 0.5s;
+    }
+    
+    /* Keyframe Animations */
+    @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        50% { box-shadow: 0 20px 40px rgba(255,255,255,0.3), 0 0 60px currentColor; }
+    }
+    
+    @keyframes textShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes sixBounce {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2) rotate(5deg); }
+        100% { transform: scale(1) rotate(0deg); }
+    }
+    
+    @keyframes fourSlide {
+        0% { transform: translateX(-50px); opacity: 0; }
+        100% { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes wicketExplode {
+        0% { transform: scale(1) rotate(0deg); }
+        50% { transform: scale(1.3) rotate(180deg); }
+        100% { transform: scale(1) rotate(360deg); }
+    }
 </style>
 {% endblock %}
 
@@ -833,10 +946,21 @@ function updateTickerWithDelivery(data) {
         }
         
         commentary = `🔥 WICKET! ${matchState.striker.name} ${dismissalText} • ${matchState.currentBowler.name} strikes`;
+        
+        // Show exciting wicket animation
+        showEventAnimation('WICKET!', 'wicket', dismissalText);
+        
     } else if (data.runs === 6) {
         commentary = `🚀 SIX! ${matchState.striker.name} sends it into the stands • Magnificent shot`;
+        
+        // Show exciting six animation
+        showEventAnimation('SIX!', 'six', '🚀');
+        
     } else if (data.runs === 4) {
         commentary = `🎯 FOUR! ${matchState.striker.name} finds the boundary • Excellent timing`;
+        
+        // Show exciting four animation
+        showEventAnimation('FOUR!', 'four', '🎯');
     } else if (data.type === 'wide') {
         commentary = `↔️ Wide ball • Extra run to the batting side`;
     } else if (data.type === 'noball') {
@@ -2304,5 +2428,39 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         status: "{{ match.status }}",
         max_overs: {{ {'T20': 20, 'ODI': 50}[match.match_type] }}
     };
+    
+    // Event Animation System
+    function showEventAnimation(title, eventType, subtitle) {
+        // Create animation container
+        const animationContainer = document.createElement('div');
+        animationContainer.className = `event-animation ${eventType}-animation`;
+        
+        // Create animation content
+        animationContainer.innerHTML = `
+            <div class="animation-content">
+                <div class="animation-title">${title}</div>
+                <div class="animation-subtitle">${subtitle}</div>
+            </div>
+        `;
+        
+        // Add to match container
+        const matchContainer = document.getElementById('match-container');
+        matchContainer.appendChild(animationContainer);
+        
+        // Trigger animation
+        setTimeout(() => {
+            animationContainer.classList.add('animate');
+        }, 100);
+        
+        // Remove animation after completion
+        setTimeout(() => {
+            animationContainer.classList.add('fade-out');
+            setTimeout(() => {
+                if (animationContainer.parentNode) {
+                    animationContainer.parentNode.removeChild(animationContainer);
+                }
+            }, 500);
+        }, 2000);
+    }
 </script>
 {% endblock %}
