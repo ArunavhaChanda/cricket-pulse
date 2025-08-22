@@ -865,8 +865,22 @@ function handleWicket(data) {
         return;
     }
     
-    // Select new batsman
-    selectNewBatsman();
+    // Check if this wicket occurred on the last ball of an over
+    const currentBalls = matchState.currentBalls || 0;
+    const isLastBallOfOver = (currentBalls % 6 === 0);
+    
+    console.log(`Wicket on ball ${currentBalls}, isLastBallOfOver: ${isLastBallOfOver}`);
+    
+    if (isLastBallOfOver) {
+        // Wicket on last ball of over - need both new batsman AND new bowler
+        console.log('Wicket on last ball of over - will select new batsman then new bowler');
+        selectNewBatsman();
+        // Note: The bowler selection will be handled in confirmNewBatsman() after batsman selection
+    } else {
+        // Regular wicket - just select new batsman
+        console.log('Regular wicket - just selecting new batsman');
+        selectNewBatsman();
+    }
     
     // Reset button to "Next Ball" after selection
     resetNextBallButton();
@@ -1005,6 +1019,17 @@ function confirmNewBatsman() {
     
     // Update ticker
     updateTicker(`🏏 ${matchState.striker.name} is the new batsman • Ready to face the next ball`);
+    
+    // Check if we need to select a new bowler (for wicket on last ball of over)
+    const currentBalls = matchState.currentBalls || 0;
+    const isLastBallOfOver = (currentBalls % 6 === 0);
+    
+    if (isLastBallOfOver) {
+        console.log('Batsman selected, now selecting new bowler for over completion');
+        setTimeout(() => {
+            completeOver();
+        }, 500);
+    }
 }
 
 function closeNewBatsmanModal() {
