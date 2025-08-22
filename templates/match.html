@@ -125,6 +125,307 @@
 
 {% block extra_js %}
 <script>
+// Stats Classes
+class BattingScore {
+    constructor(playerName) {
+        this.playerName = playerName;
+        this.runsScored = 0;
+        this.ballsFaced = 0;
+        this.dots = 0;
+        this.notOut = true;
+        this.sixesHit = 0;
+        this.foursHit = 0;
+        this.extras = 0; // Track extras received by this batsman
+        this.methodOfDismissal = "";
+        this.bowledByPlayerName = "";
+        this.caughtByPlayerName = "";
+        this.stumpedByPlayerName = "";
+    }
+    
+    dot() {
+        this.ballsFaced += 1;
+        this.dots += 1;
+    }
+    
+    single() {
+        this.runsScored += 1;
+        this.ballsFaced += 1;
+    }
+    
+    twoRuns() {
+        this.runsScored += 2;
+        this.ballsFaced += 1;
+    }
+    
+    threeRuns() {
+        this.runsScored += 3;
+        this.ballsFaced += 1;
+    }
+    
+    fourRuns() {
+        this.runsScored += 4;
+        this.ballsFaced += 1;
+        this.foursHit += 1;
+    }
+    
+    sixRuns() {
+        this.runsScored += 6;
+        this.ballsFaced += 1;
+        this.sixesHit += 1;
+    }
+    
+    // Handle extras (no balls, wide balls) - doesn't count as balls faced
+    addExtras(extraRuns) {
+        this.extras += extraRuns;
+    }
+    
+    out(method, bowler, fielder = null) {
+        this.ballsFaced += 1;
+        this.dots += 1;
+        this.notOut = false;
+        this.methodOfDismissal = method;
+        
+        if (method === "caught" && fielder) {
+            this.caughtByPlayerName = fielder.name;
+        }
+        if (method === "stumped" && fielder) {
+            this.stumpedByPlayerName = fielder.name;
+        }
+        if (bowler) {
+            this.bowledByPlayerName = bowler.name;
+        }
+    }
+    
+    getStrikeRate() {
+        if (this.ballsFaced === 0) return 0;
+        return (this.runsScored * 100) / this.ballsFaced;
+    }
+    
+    getScorecardRow() {
+        const playerNameSegment = this.playerName + (this.notOut ? " *" : "");
+        
+        let dismissalDetailSegment = "";
+        if (this.methodOfDismissal === "caught") {
+            dismissalDetailSegment = "c. " + this.caughtByPlayerName + " b. " + this.bowledByPlayerName;
+        } else if (this.methodOfDismissal === "stumped") {
+            dismissalDetailSegment = "st. " + this.stumpedByPlayerName + " b. " + this.bowledByPlayerName;
+        } else if (this.methodOfDismissal === "lbw") {
+            dismissalDetailSegment = "lbw b. " + this.bowledByPlayerName;
+        }
+        
+        const bowledSegment = this.notOut ? "" : "b. " + this.bowledByPlayerName;
+        const scoreSegment = `${this.runsScored}(${this.ballsFaced})`;
+        const strikeRateSegment = this.getStrikeRate().toFixed(2);
+        
+        return {
+            playerName: playerNameSegment,
+            dismissal: dismissalDetailSegment,
+            bowled: bowledSegment,
+            score: scoreSegment,
+            strikeRate: strikeRateSegment,
+            sixes: this.sixesHit,
+            fours: this.foursHit,
+            dots: this.dots,
+            extras: this.extras
+        };
+    }
+    
+    getShortScore(onStrike = false) {
+        return `${this.playerName}${onStrike ? " *" : ""} ${this.runsScored}(${this.ballsFaced})`;
+    }
+}
+
+class BowlingFigures {
+    constructor(playerName) {
+        this.playerName = playerName;
+        this.deliveries = 0;
+        this.dotBalls = 0;
+        this.runsConceded = 0;
+        this.wicketsTaken = 0;
+        this.economyRate = 0.0;
+    }
+    
+    dot() {
+        this.deliveries += 1;
+        this.dotBalls += 1;
+    }
+    
+    noBall() {
+        // No ball doesn't count as a delivery but gives a run
+        this.runsConceded += 1;
+    }
+    
+    wideBall() {
+        this.runsConceded += 1;
+    }
+    
+    single() {
+        this.runsConceded += 1;
+        this.deliveries += 1;
+    }
+    
+    twoRuns() {
+        this.runsConceded += 2;
+        this.deliveries += 1;
+    }
+    
+    threeRuns() {
+        this.runsConceded += 3;
+        this.deliveries += 1;
+    }
+    
+    fourRuns() {
+        this.runsConceded += 4;
+        this.deliveries += 1;
+    }
+    
+    sixRuns() {
+        this.runsConceded += 6;
+        this.deliveries += 1;
+    }
+    
+    wicket() {
+        this.deliveries += 1;
+        this.wicketsTaken += 1;
+        this.dotBalls += 1;
+    }
+    
+    getFormattedOvers() {
+        const overs = Math.floor(this.deliveries / 6);
+        const balls = this.deliveries % 6;
+        return balls === 0 ? overs.toString() : `${overs}.${balls}`;
+    }
+    
+    getEconomyRate() {
+        if (this.deliveries === 0) return 0;
+        return (this.runsConceded / this.deliveries) * 6.0;
+    }
+    
+    getFigures() {
+        const overs = this.getFormattedOvers();
+        const dots = this.dotBalls;
+        const runs = this.runsConceded;
+        const wickets = this.wicketsTaken;
+        const economy = this.getEconomyRate().toFixed(2);
+        
+        return `${overs}-${dots}-${runs}-${wickets} ${economy}`;
+    }
+    
+    getScorecardRow() {
+        return {
+            playerName: this.playerName,
+            figures: this.getFigures(),
+            overs: this.getFormattedOvers(),
+            dots: this.dotBalls,
+            runs: this.runsConceded,
+            wickets: this.wicketsTaken,
+            economy: this.getEconomyRate().toFixed(2)
+        };
+    }
+    
+    getShortScore() {
+        return `${this.playerName} ${this.wicketsTaken}/${this.runsConceded}`;
+    }
+}
+
+class ScorecardManager {
+    constructor() {
+        this.innings = {
+            1: { batting: {}, bowling: {} },
+            2: { batting: {}, bowling: {} }
+        };
+    }
+    
+    initializeInnings(inningsNumber, battingTeam, bowlingTeam) {
+        // Initialize batting stats for all players
+        battingTeam.players.forEach(player => {
+            this.innings[inningsNumber].batting[player.id] = new BattingScore(player.name);
+        });
+        
+        // Initialize bowling stats for all players
+        bowlingTeam.players.forEach(player => {
+            this.innings[inningsNumber].bowling[player.id] = new BowlingFigures(player.name);
+        });
+    }
+    
+    getBattingScore(inningsNumber, playerId) {
+        return this.innings[inningsNumber].batting[playerId];
+    }
+    
+    getBowlingFigures(inningsNumber, playerId) {
+        return this.innings[inningsNumber].bowling[playerId];
+    }
+    
+    updateBattingStats(inningsNumber, playerId, runs, isWicket, dismissalType, bowler, fielder, extras = 0) {
+        const battingScore = this.getBattingScore(inningsNumber, playerId);
+        if (!battingScore) return;
+        
+        // Handle extras first (no balls, wide balls)
+        if (extras > 0) {
+            battingScore.addExtras(extras);
+            // Don't increment ballsFaced for extras
+            return;
+        }
+        
+        if (isWicket) {
+            battingScore.out(dismissalType, bowler, fielder);
+        } else if (runs === 0) {
+            battingScore.dot();
+        } else if (runs === 1) {
+            battingScore.single();
+        } else if (runs === 2) {
+            battingScore.twoRuns();
+        } else if (runs === 3) {
+            battingScore.threeRuns();
+        } else if (runs === 4) {
+            battingScore.fourRuns();
+        } else if (runs === 6) {
+            battingScore.sixRuns();
+        }
+    }
+    
+    updateBowlingStats(inningsNumber, playerId, runs, isWicket, extras) {
+        const bowlingFigures = this.getBowlingFigures(inningsNumber, playerId);
+        if (!bowlingFigures) return;
+        
+        if (extras === 'wide') {
+            bowlingFigures.wideBall();
+        } else if (extras === 'noball') {
+            bowlingFigures.noBall();
+        } else {
+            if (isWicket) {
+                bowlingFigures.wicket();
+            } else if (runs === 0) {
+                bowlingFigures.dot();
+            } else if (runs === 1) {
+                bowlingFigures.single();
+            } else if (runs === 2) {
+                bowlingFigures.twoRuns();
+            } else if (runs === 3) {
+                bowlingFigures.threeRuns();
+            } else if (runs === 4) {
+                bowlingFigures.fourRuns();
+            } else if (runs === 6) {
+                bowlingFigures.sixRuns();
+            }
+        }
+    }
+    
+    getInningsScorecard(inningsNumber) {
+        return {
+            batting: Object.values(this.innings[inningsNumber].batting),
+            bowling: Object.values(this.innings[inningsNumber].bowling)
+        };
+    }
+    
+    getFullMatchScorecard() {
+        return {
+            firstInnings: this.getInningsScorecard(1),
+            secondInnings: this.getInningsScorecard(2)
+        };
+    }
+}
+
 let matchState = {
     currentInnings: 1, // 1 for first innings, 2 for second innings
     battingTeam: null,
@@ -141,7 +442,8 @@ let matchState = {
     target: 0, // Target for second innings
     secondInningsBattingTeam: null, // Team batting in second innings
     secondInningsBowlingTeam: null, // Team bowling in second innings
-    matchResult: null // Store final match result
+    matchResult: null, // Store final match result
+    scorecardManager: new ScorecardManager() // New stats tracking system
 };
 
 // Initialize match interface
@@ -385,6 +687,9 @@ function handleMatchStart(data) {
     matchState.battingOrderPlayers = [];
     matchState.wicketkeeper = matchState.bowlingTeam.players.find(p => p.is_wicketkeeper);
     
+    // Initialize stats tracking for first innings
+    matchState.scorecardManager.initializeInnings(1, matchState.battingTeam, matchState.bowlingTeam);
+    
     // Clear projection info and previous result
     document.getElementById('projection-info').textContent = '';
     matchState.matchResult = null;
@@ -548,7 +853,7 @@ function simulateDelivery() {
     // This is where you'd integrate with your Python cricket simulation logic
     // For now, we'll create a mock delivery
     const mockDelivery = generateMockDelivery();
-    matchState.fielder = matchState.battingTeam.players[Math.floor(Math.random() * 11)];
+    matchState.fielder = matchState.bowlingTeam.players[Math.floor(Math.random() * 11)];
     
     // Send delivery to server for processing
     fetch(`/api/matches/${MATCH_DATA.match_id}/simulate-delivery`, {
@@ -786,10 +1091,13 @@ function addBallToOver(data) {
     
     ballsContainer.appendChild(ball);
     
-    // Update over number display
-    const currentBalls = ballsContainer.children.length;
-    const overNum = Math.floor((currentBalls - 1) / 6) + 1;
-    const ballInOver = ((currentBalls - 1) % 6) + 1;
+    // Update over number display - only count legal deliveries
+    const legalBalls = Array.from(ballsContainer.children).filter(ball => 
+        !ball.classList.contains('wide') && !ball.classList.contains('noball')
+    ).length;
+    
+    const overNum = Math.floor((legalBalls - 1) / 6) + 1;
+    const ballInOver = ((legalBalls - 1) % 6) + 1;
     
     document.getElementById('over-number').textContent = `Over ${overNum}.${ballInOver}`;
 }
@@ -798,8 +1106,12 @@ function updateScoreAfterDelivery(data) {
     // Update team score (this would come from server in real implementation)
     matchState.totalRuns = (matchState.totalRuns || 0) + data.runs + data.extras;
     // matchState.wicketsLost = (matchState.wicketsLost || 0) + (data.isWicket ? 1 : 0);  // No need to double-count wicket fall
-    matchState.ballsFaced = (matchState.ballsFaced || 0) + (data.extras > 0 ? 0 : 1);
-    matchState.currentBalls = (matchState.currentBalls || 0) + (data.extras > 0 ? 0 : 1);
+    
+    // Only increment balls faced for legal deliveries (no extras)
+    if (data.extras === 0) {
+        matchState.ballsFaced = (matchState.ballsFaced || 0) + 1;
+        matchState.currentBalls = (matchState.currentBalls || 0) + 1;
+    }
     
     // Update display
     const team1Score = document.getElementById('team1-score');
@@ -847,26 +1159,42 @@ function updateScoreAfterDelivery(data) {
 }
 
 function updatePlayerStats(data) {
-    // Update striker stats
+    // Update stats using the new scorecard manager
     if (matchState.striker) {
-        matchState.striker.runs = (matchState.striker.runs || 0) + data.runs;
-        matchState.striker.ballsFaced = (matchState.striker.ballsFaced || 0) + (data.extras > 0 ? 0 : 1);
-        matchState.striker.fours = (matchState.striker.fours || 0) + (data.runs === 4 ? 1 : 0);
-        matchState.striker.sixes = (matchState.striker.sixes || 0) + (data.runs === 6 ? 1 : 0);
+        // Update batting stats
+        matchState.scorecardManager.updateBattingStats(
+            matchState.currentInnings,
+            matchState.striker.id,
+            data.runs,
+            data.isWicket,
+            data.dismissal_type,
+            matchState.currentBowler,
+            matchState.fielder,
+            data.extras || 0
+        );
         
-        const sr = matchState.striker.ballsFaced > 0 ? 
-            ((matchState.striker.runs / matchState.striker.ballsFaced) * 100).toFixed(1) : '0.0';
+        // Get updated stats for display
+        const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.striker.id);
+        const sr = battingScore.getStrikeRate().toFixed(1);
         
         document.getElementById('striker-name').textContent = matchState.striker.name;
         document.getElementById('striker-stats').innerHTML = 
-            `${matchState.striker.runs}* (${matchState.striker.ballsFaced}) | SR: ${sr}<br>4s: ${matchState.striker.fours || 0} • 6s: ${matchState.striker.sixes || 0}`;
+            `${battingScore.runsScored}* (${battingScore.ballsFaced}) | SR: ${sr}<br>4s: ${battingScore.foursHit} • 6s: ${battingScore.sixesHit}`;
     }
 
     // Update bowler stats
     if (matchState.currentBowler) {
-        matchState.currentBowler.oversBowled = (matchState.currentBowler.oversBowled || 0) + (data.extras > 0 ? 0 : 0.1);
-        matchState.currentBowler.runsConceded = (matchState.currentBowler.runsConceded || 0) + data.runs + data.extras;
-        matchState.currentBowler.wicketsTaken = (matchState.currentBowler.wicketsTaken || 0) + (data.isWicket ? 1 : 0);
+        // Update bowling stats
+        matchState.scorecardManager.updateBowlingStats(
+            matchState.currentInnings,
+            matchState.currentBowler.id,
+            data.runs,
+            data.isWicket,
+            data.type === 'wide' ? 'wide' : data.type === 'noball' ? 'noball' : null
+        );
+        
+        // Get updated stats for display
+        const bowlingFigures = matchState.scorecardManager.getBowlingFigures(matchState.currentInnings, matchState.currentBowler.id);
         
         document.getElementById('bowler-name').textContent = matchState.currentBowler.name;
     }
@@ -1511,6 +1839,9 @@ function startSecondInnings() {
     matchState.battingOrderPlayers = [];
     matchState.wicketkeeper = matchState.bowlingTeam.players.find(p => p.is_wicketkeeper);
     
+    // Initialize stats tracking for second innings
+    matchState.scorecardManager.initializeInnings(2, matchState.battingTeam, matchState.bowlingTeam);
+    
     // Update display for second innings
     updateMatchDisplay();
     
@@ -1626,28 +1957,42 @@ function updateBattingCard() {
     
     battingList.innerHTML = '';
     
-    // matchState.battingTeam.players.forEach(player => {
+    // Add fixed header row
+    const headerRow = document.createElement('div');
+    headerRow.className = 'batting-header';
+    headerRow.innerHTML = `
+        <div>Player</div>
+        <div>Score</div>
+        <div>SR</div>
+        <div>4s/6s</div>
+    `;
+    battingList.appendChild(headerRow);
+    
+    // Show only players who have already batted (in batting order)
     matchState.battingOrderPlayers.forEach(player => {
+        // Get stats for this player from the current innings
+        const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, player.id);
+        if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
+        
         const row = document.createElement('div');
         row.className = 'batting-row';
         
+        // Check if this player is currently batting
         if (player.id === matchState.striker?.id || player.id === matchState.nonStriker?.id) {
             row.classList.add('current', 'not-out');
-        } else if (player.isOut) {
+        } else if (!battingScore.notOut) {
             row.classList.add('out');
-        } else if (player.hasAlreadyBatted) {
+        } else {
             row.classList.add('not-out');
         }
         
-        const runs = player.runs || 0;
-        const balls = player.ballsFaced || 0;
-        const sr = balls > 0 ? ((runs / balls) * 100).toFixed(1) : '0.0';
+        const scorecardRow = battingScore.getScorecardRow();
         
         row.innerHTML = `
             <div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>
-            <div>${(player.id === matchState.striker?.id || player.id === matchState.nonStriker?.id) ? runs  + '*': runs}</div>
-            <div>${balls}</div>
-            <div>${sr}</div>
+            <div>${scorecardRow.score}</div>
+            <div>${scorecardRow.strikeRate}</div>
+            <div>${scorecardRow.fours}/${scorecardRow.sixes}</div>
         `;
         
         battingList.appendChild(row);
@@ -1660,25 +2005,36 @@ function updateBowlingCard() {
     
     bowlingList.innerHTML = '';
     
-    matchState.bowlingTeam.players
-        .filter(player => player.oversBowled > 0 || player.id === matchState.currentBowler?.id)
-        .forEach(player => {
+    // Add fixed header row
+    const headerRow = document.createElement('div');
+    headerRow.className = 'bowling-header';
+    headerRow.innerHTML = `
+        <div>Bowler</div>
+        <div>Overs</div>
+        <div>Runs</div>
+        <div>Wickets</div>
+        <div>Economy</div>
+    `;
+    bowlingList.appendChild(headerRow);
+    
+    // Get current innings bowling stats
+    const currentInningsStats = matchState.scorecardManager.getInningsScorecard(matchState.currentInnings);
+    
+    // Show bowlers who have bowled in current innings
+    currentInningsStats.bowling
+        .filter(bowlingFigures => bowlingFigures.deliveries > 0 || bowlingFigures.playerName === matchState.currentBowler?.name)
+        .forEach(bowlingFigures => {
             const row = document.createElement('div');
             row.className = 'bowling-row';
             
-            const overs = (player.oversBowled || 0).toFixed(1);
-            const runs = player.runsConceded || 0;
-            const wickets = player.wicketsTaken || 0;
-            const ballsBowled = Math.floor(overs) * 6 + ((overs * 10) % 10)
-
-            const economy = ballsBowled > 0 ? (runs * 6 / ballsBowled).toFixed(2) : '0.00';
+            const scorecardRow = bowlingFigures.getScorecardRow();
             
             row.innerHTML = `
-                <div>${player.name}</div>
-                <div>${overs}</div>
-                <div>${runs}</div>
-                <div>${wickets}</div>
-                <div>${economy}</div>
+                <div>${scorecardRow.playerName}</div>
+                <div>${scorecardRow.overs}</div>
+                <div>${scorecardRow.runs}</div>
+                <div>${scorecardRow.wickets}</div>
+                <div>${scorecardRow.economy}</div>
             `;
             
             bowlingList.appendChild(row);
@@ -1923,6 +2279,199 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         gap: 8px;
         max-height: 200px;
         overflow-y: auto;
+        position: relative;
+    }
+    
+    .batting-header, .bowling-header {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        background: rgba(33,150,243,0.2);
+        border: 1px solid rgba(33,150,243,0.3);
+        color: #2196f3;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .bowling-header {
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    }
+    
+    /* Full Scorecard Styling */
+    .full-scorecard {
+        max-width: 100%;
+        color: #e3f2fd;
+    }
+    
+    .scorecard-header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid rgba(33,150,243,0.3);
+    }
+    
+    .scorecard-header-container h2 {
+        color: #2196f3;
+        font-size: 1.8rem;
+        text-shadow: 0 0 10px rgba(33,150,243,0.5);
+        margin: 0;
+    }
+    
+    .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        padding: 8px 12px;
+        font-size: 1rem;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .full-scorecard h2 {
+        text-align: center;
+        color: #2196f3;
+        margin-bottom: 25px;
+        font-size: 1.8rem;
+        text-shadow: 0 0 10px rgba(33,150,243,0.5);
+    }
+    
+    .full-scorecard h3 {
+        color: #ffd700;
+        margin: 25px 0 15px 0;
+        font-size: 1.4rem;
+        border-bottom: 2px solid rgba(255,215,0,0.3);
+        padding-bottom: 8px;
+    }
+    
+    .full-scorecard h4 {
+        color: #4caf50;
+        margin: 20px 0 15px 0;
+        font-size: 1.2rem;
+    }
+    
+    .innings-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: rgba(0,0,0,0.4);
+        border-radius: 15px;
+        border: 1px solid rgba(33,150,243,0.2);
+    }
+    
+    .scorecard-table {
+        background: rgba(0,0,0,0.6);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(33,150,243,0.3);
+        margin-bottom: 20px;
+    }
+    
+    .scorecard-header {
+        display: grid;
+        grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;
+        padding: 12px 15px;
+        background: rgba(33,150,243,0.2);
+        border-bottom: 2px solid rgba(33,150,243,0.3);
+        font-weight: bold;
+        color: #2196f3;
+        font-size: 0.95rem;
+    }
+    
+    .scorecard-row {
+        display: grid;
+        grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;
+        padding: 10px 15px;
+        border-bottom: 1px solid rgba(33,150,243,0.1);
+        transition: background 0.3s ease;
+        font-size: 0.9rem;
+    }
+    
+    .scorecard-row:hover {
+        background: rgba(33,150,243,0.1);
+    }
+    
+    .scorecard-row:last-child {
+        border-bottom: none;
+    }
+    
+    /* Special styling for extras and total rows */
+    .extras-row {
+        background: rgba(255,193,7,0.1);
+        border-top: 2px solid rgba(255,193,7,0.3);
+        font-weight: bold;
+    }
+    
+    .total-row {
+        background: rgba(76,175,80,0.1);
+        border-top: 2px solid rgba(76,175,80,0.3);
+        font-weight: bold;
+        color: #4caf50;
+    }
+    
+    .total-row strong {
+        color: #4caf50;
+        font-size: 1.1rem;
+    }
+    
+    /* Current batsman highlighting */
+    .current-batsman {
+        background: rgba(255,215,0,0.15);
+        border: 1px solid rgba(255,215,0,0.4);
+        font-weight: bold;
+    }
+    
+    .current-batsman::before {
+        content: "★";
+        position: absolute;
+        left: 10px;
+        color: #ffd700;
+        font-size: 1.2rem;
+    }
+    
+    /* Not batted yet styling */
+    .not-batted {
+        background: rgba(128,128,128,0.1);
+        color: #888;
+        font-style: italic;
+    }
+    
+    /* Bowling table has different column layout */
+    .bowling-table .scorecard-header,
+    .bowling-table .scorecard-row {
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    }
+    
+    /* Batting table column layout */
+    .batting-table .scorecard-header,
+    .batting-table .scorecard-row {
+        grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .scorecard-header,
+        .scorecard-row {
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
+            font-size: 0.8rem;
+            padding: 8px 10px;
+        }
+        
+        .full-scorecard h2 {
+            font-size: 1.5rem;
+        }
+        
+        .full-scorecard h3 {
+            font-size: 1.2rem;
+        }
     }
 
     .batting-row, .bowling-row {
@@ -2092,8 +2641,10 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         background: #1a1a1a;
         border-radius: 15px;
         padding: 30px;
-        max-width: 600px;
-        width: 90%;
+        max-width: 1200px;
+        width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
         text-align: center;
         box-sizing: border-box;
     }
@@ -2365,6 +2916,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         <button class="btn btn-primary" onclick="simulateDelivery()" id="next-ball-btn">🎯 Next Ball</button>
         <button class="btn btn-warning" onclick="autoSimulate()" id="auto-sim-btn">⚡ Auto Simulate</button>
         <button class="btn btn-danger" onclick="pauseSimulation()" id="pause-btn" style="display: none;">⏸️ Pause</button>
+        <button class="btn btn-success" onclick="showFullScorecard()" id="scorecard-btn">📊 Full Scorecard</button>
     </div>
 </div>
 
@@ -2461,6 +3013,237 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 }
             }, 500);
         }, 2000);
+    }
+    
+    // Full Scorecard Display
+    function showFullScorecard() {
+        const fullScorecard = matchState.scorecardManager.getFullMatchScorecard();
+        
+        let scorecardHTML = '<div class="full-scorecard">';
+        scorecardHTML += '<h2>🏏 Full Match Scorecard</h2>';
+        
+        // First Innings
+        if (fullScorecard.firstInnings) {
+            scorecardHTML += '<div class="innings-section">';
+            scorecardHTML += '<h3>First Innings</h3>';
+            scorecardHTML += '<h4>Batting</h4>';
+            scorecardHTML += '<div class="scorecard-table batting-table">';
+            scorecardHTML += '<div class="scorecard-header">';
+            scorecardHTML += '<div>Player</div><div>Dismissal</div><div>Runs (Balls)</div><div>SR</div><div>4s/6s</div>';
+            scorecardHTML += '</div>';
+            
+            // First show players in batting order who have batted
+            matchState.battingOrderPlayers.forEach(player => {
+                const battingScore = fullScorecard.firstInnings.batting.find(bs => bs.playerName === player.name);
+                if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
+                
+                const row = battingScore.getScorecardRow();
+                const isCurrentlyBatting = player.id === matchState.striker?.id || player.id === matchState.nonStriker?.id;
+                const rowClass = isCurrentlyBatting ? 'scorecard-row current-batsman' : 'scorecard-row';
+                
+                scorecardHTML += `<div class="${rowClass}">`;
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>${row.dismissal || row.bowled}</div>`;
+                scorecardHTML += `<div>${row.score}</div>`;
+                scorecardHTML += `<div>${row.strikeRate}</div>`;
+                scorecardHTML += `<div>${row.fours}/${row.sixes}</div>`;
+                scorecardHTML += '</div>';
+            });
+            
+            // Then show remaining players in batting team who haven't batted yet
+            matchState.battingTeam.players.forEach(player => {
+                if (matchState.battingOrderPlayers.some(bop => bop.id === player.id)) return; // Skip if already shown
+                
+                scorecardHTML += '<div class="scorecard-row not-batted">';
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += '</div>';
+            });
+            
+            // Add Extras row
+            const firstInningsExtras = fullScorecard.firstInnings.batting.reduce((total, battingScore) => {
+                return total + (battingScore.extras || 0);
+            }, 0);
+            scorecardHTML += '<div class="scorecard-row extras-row">';
+            scorecardHTML += '<div><strong>Extras</strong></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += `<div><strong>${firstInningsExtras}</strong></div>`;
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '</div>';
+            
+            // Add Total row
+            const firstInningsTotal = fullScorecard.firstInnings.batting.reduce((total, battingScore) => {
+                return total + battingScore.runsScored;
+            }, 0);
+            const firstInningsWickets = fullScorecard.firstInnings.batting.filter(battingScore => !battingScore.notOut).length;
+            const firstInningsOvers = Math.floor(fullScorecard.firstInnings.batting.reduce((total, battingScore) => {
+                return total + battingScore.ballsFaced;
+            }, 0) / 6);
+            const firstInningsBalls = fullScorecard.firstInnings.batting.reduce((total, battingScore) => {
+                return total + battingScore.ballsFaced;
+            }, 0) % 6;
+            const oversFormatted = firstInningsBalls > 0 ? `${firstInningsOvers}.${firstInningsBalls}` : firstInningsOvers.toString();
+            
+            scorecardHTML += '<div class="scorecard-row total-row">';
+            scorecardHTML += '<div><strong>TOTAL</strong></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += `<div><strong>${firstInningsTotal + firstInningsExtras}/${firstInningsWickets} (${oversFormatted})</strong></div>`;
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '</div>';
+            
+            scorecardHTML += '</div>';
+            
+            scorecardHTML += '<h4>Bowling</h4>';
+            scorecardHTML += '<div class="scorecard-table bowling-table">';
+            scorecardHTML += '<div class="scorecard-header">';
+            scorecardHTML += '<div>Bowler</div><div>Overs</div><div>Runs</div><div>Wickets</div><div>Economy</div>';
+            scorecardHTML += '</div>';
+            
+            // Only show bowlers who have actually bowled
+            fullScorecard.firstInnings.bowling
+                .filter(bowlingFigures => bowlingFigures.deliveries > 0)
+                .forEach(bowlingFigures => {
+                const row = bowlingFigures.getScorecardRow();
+                scorecardHTML += '<div class="scorecard-row">';
+                scorecardHTML += `<div>${row.playerName}</div>`;
+                scorecardHTML += `<div>${row.overs}</div>`;
+                scorecardHTML += `<div>${row.runs}</div>`;
+                scorecardHTML += `<div>${row.wickets}</div>`;
+                scorecardHTML += `<div>${row.economy}</div>`;
+                scorecardHTML += '</div>';
+            });
+            scorecardHTML += '</div>';
+            scorecardHTML += '</div>';
+        }
+        
+        // Second Innings (if completed)
+        if (fullScorecard.secondInnings && matchState.currentInnings > 1) {
+            scorecardHTML += '<div class="innings-section">';
+            scorecardHTML += '<h3>Second Innings</h3>';
+            scorecardHTML += '<h4>Batting</h4>';
+            scorecardHTML += '<div class="scorecard-table batting-table">';
+            scorecardHTML += '<div class="scorecard-header">';
+            scorecardHTML += '<div>Player</div><div>Dismissal</div><div>Runs (Balls)</div><div>SR</div><div>4s/6s</div>';
+            scorecardHTML += '</div>';
+            
+            // First show players in batting order who have batted
+            matchState.battingOrderPlayers.forEach(player => {
+                const battingScore = fullScorecard.secondInnings.batting.find(bs => bs.playerName === player.name);
+                if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
+                
+                const row = battingScore.getScorecardRow();
+                const isCurrentlyBatting = player.id === matchState.striker?.id || player.id === matchState.nonStriker?.id;
+                const rowClass = isCurrentlyBatting ? 'scorecard-row current-batsman' : 'scorecard-row';
+                
+                scorecardHTML += `<div class="${rowClass}">`;
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>${row.dismissal || row.bowled}</div>`;
+                scorecardHTML += `<div>${row.score}</div>`;
+                scorecardHTML += `<div>${row.strikeRate}</div>`;
+                scorecardHTML += `<div>${row.fours}/${row.sixes}</div>`;
+                scorecardHTML += '</div>';
+            });
+            
+            // Then show remaining players in batting team who haven't batted yet
+            matchState.battingTeam.players.forEach(player => {
+                if (matchState.battingOrderPlayers.some(bop => bop.id === player.id)) return; // Skip if already shown
+                
+                scorecardHTML += '<div class="scorecard-row not-batted">';
+                scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += `<div>-</div>`;
+                scorecardHTML += '</div>';
+            });
+            
+            // Add Extras row for second innings
+            const secondInningsExtras = fullScorecard.secondInnings.batting.reduce((total, battingScore) => {
+                return total + (battingScore.extras || 0);
+            }, 0);
+            scorecardHTML += '<div class="scorecard-row extras-row">';
+            scorecardHTML += '<div><strong>Extras</strong></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += `<div><strong>${secondInningsExtras}</strong></div>`;
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '</div>';
+            
+            // Add Total row for second innings
+            const secondInningsTotal = fullScorecard.secondInnings.batting.reduce((total, battingScore) => {
+                return total + battingScore.runsScored;
+            }, 0);
+            const secondInningsWickets = fullScorecard.secondInnings.batting.filter(battingScore => !battingScore.notOut).length;
+            const secondInningsOvers = Math.floor(fullScorecard.secondInnings.batting.reduce((total, battingScore) => {
+                return total + battingScore.ballsFaced;
+            }, 0) / 6);
+            const secondInningsBalls = fullScorecard.secondInnings.batting.reduce((total, battingScore) => {
+                return total + battingScore.ballsFaced;
+            }, 0) % 6;
+            const secondOversFormatted = secondInningsBalls > 0 ? `${secondInningsOvers}.${secondInningsBalls}` : secondInningsOvers.toString();
+            
+            scorecardHTML += '<div class="scorecard-row total-row">';
+            scorecardHTML += '<div><strong>TOTAL</strong></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += `<div><strong>${secondInningsTotal + secondInningsExtras}/${secondInningsWickets} (${secondOversFormatted})</strong></div>`;
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '<div></div>';
+            scorecardHTML += '</div>';
+            
+            scorecardHTML += '</div>';
+            
+            scorecardHTML += '<h4>Bowling</h4>';
+            scorecardHTML += '<div class="scorecard-table bowling-table">';
+            scorecardHTML += '<div class="scorecard-header">';
+            scorecardHTML += '<div>Bowler</div><div>Overs</div><div>Runs</div><div>Wickets</div><div>Economy</div>';
+            scorecardHTML += '</div>';
+            
+            // Only show bowlers who have actually bowled
+            fullScorecard.secondInnings.bowling
+                .filter(bowlingFigures => bowlingFigures.deliveries > 0)
+                .forEach(bowlingFigures => {
+                const row = bowlingFigures.getScorecardRow();
+                scorecardHTML += '<div class="scorecard-row">';
+                scorecardHTML += `<div>${row.playerName}</div>`;
+                scorecardHTML += `<div>${row.overs}</div>`;
+                scorecardHTML += `<div>${row.runs}</div>`;
+                scorecardHTML += `<div>${row.wickets}</div>`;
+                scorecardHTML += `<div>${row.economy}</div>`;
+                scorecardHTML += '</div>';
+            });
+            scorecardHTML += '</div>';
+            scorecardHTML += '</div>';
+        }
+        
+        scorecardHTML += '</div>';
+        
+        // Show in a modal
+        const modal = document.getElementById('player-modal');
+        const modalContent = modal.querySelector('.modal-content');
+        
+        // Create header with close button
+        const headerHTML = `
+            <div class="scorecard-header-container">
+                <h2>🏏 Full Match Scorecard</h2>
+                <button class="btn btn-secondary close-btn" onclick="closeScorecard()">❌</button>
+            </div>
+        `;
+        
+        modalContent.innerHTML = headerHTML + scorecardHTML;
+        
+        modal.style.display = 'block';
+    }
+    
+    // Function to close the scorecard modal
+    function closeScorecard() {
+        const modal = document.getElementById('player-modal');
+        modal.style.display = 'none';
+        resetModalToOriginal();
     }
 </script>
 {% endblock %}
