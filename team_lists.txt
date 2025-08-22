@@ -27,3 +27,123 @@ Tim David
 Josh Hazlewood
 Bhuvneshwar Kumar
 Suyash Sharma
+
+Chennai Super Kings
+CSK
+
+Ruturaj Gaikwad
+Devon Conway
+Rachin Ravindra
+Deepak Hooda
+Shivam Dube
+M.S. Dhoni, C, WK
+Ravindra Jadeja
+Sam Curran
+Ravichandran Ashwin
+Khaleel Ahmed
+Matheesha Pathirana
+
+Delhi Capitals
+DC
+
+KL Rahul, C
+Jake Fraser-McGurk
+Harry Brook
+Tristan Stubbs, WK
+Sameer Rizvi
+Ashutosh Sharma
+Axar Patel
+Mitchell Starc
+T Natarajan
+Mohit Sharma
+Kuldeep Yadav
+
+Gujarat Titans
+GT
+
+Jos Buttler, WK
+Shubman Gill, C
+Sai Sudharsan
+Glenn Phillips
+Shahrukh Khan
+Rahul Tewatia
+Washington Sundar
+Rashid Khan
+Prasidh Krishna
+Mohammed Siraj
+Kagiso Rabada
+
+Lucknow Super Giants
+LSG
+
+Mitchell Marsh
+Ayush Badoni
+Rishabh Pant, C, WK
+David Miller
+Nicholas Pooran
+Abdul Samad
+Shahbaz Ahmed
+Avesh Khan
+Shamar Joseph
+Mayank Yadav
+Ravi Bishnoi
+
+Mumbai Indians
+MI
+
+Rohit Sharma
+Ryan Rickelton, WK
+Suryakumar Yadav
+Tilak Varma
+Will Jacks
+Hardik Pandya, C
+Naman Dhir
+Mitchell Santner
+Trent Boult
+Jasprit Bumrah
+Deepak Chahar
+
+Punjab Kings
+PBKS
+
+Priyansh Arya
+Prabhsimran Singh, WK
+Nehal Wadhera
+Shreyas Iyer, C
+Josh Inglis
+Shashank Singh
+Marcus Stoinis
+Marco Jansen
+Azmatullah Omarzai
+Arshdeep Singh
+Yuzvendra Chahal
+
+Rajasthan Royals
+RR
+
+Yashasvi Jaiswal
+Sanju Samson, C, WK
+Nitish Rana
+Riyan Parag
+Dhruv Jurel
+Shimron Hetmyer
+Wanindu Hasaranga
+Jofra Archer
+Sandeep Sharma
+Akash Madhwal
+Maheesh Theeksana
+
+Sunrisers Hyderabad
+SRH
+
+Travis Head
+Abhishek Sharma
+Ishan Kishan, WK
+Heinrich Klaasen
+Abhinav Manohar
+Nitish Kumar Reddy
+Pat Cummins, C
+Harshal Patel
+Rahul Chahar
+Mohammed Shami
+Adam Zampa

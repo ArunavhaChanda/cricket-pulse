@@ -53,8 +53,8 @@ def import_players_from_csv(csv_file_path):
                             continue
                         
                         # Validate team_short length
-                        if len(team_short) != 3:
-                            errors.append(f"Row {row_num}: team_short must be exactly 3 characters")
+                        if len(team_short) > 4:
+                            errors.append(f"Row {row_num}: team_short must be less than 5 characters")
                             continue
                         
                         # Find or create team

@@ -22,9 +22,7 @@ def build_squads():
 	return players
 
 
-def construct_teams(team_lists, players_to_import_file):
-
-	players_dict = build_squads()
+def construct_teams(team_lists, players_to_import_file, players_dict):
 
 	team_name = team_lists.readline().strip("\n").strip(" ")
 	short_name = team_lists.readline().strip("\n").strip(" ")
@@ -35,7 +33,10 @@ def construct_teams(team_lists, players_to_import_file):
 		bowler_type = "pace"
 		is_wicketkeeper = False
 		is_captain = False
-		player_info = team_lists.readline().strip("\n").strip(" ")
+		line = team_lists.readline()
+		if not line:
+			return False
+		player_info = line.strip("\n").strip(" ")
 		player_info = player_info.split(',')
 		player_name = player_info[0]
 		if len(player_info) > 1:
@@ -51,14 +52,18 @@ def construct_teams(team_lists, players_to_import_file):
 		player_found = players_dict[player_name]
 
 		players_to_import_file.write(str(team_name) + "," + str(short_name) + "," + str(player_found) + "," + str(is_captain) + "," + str(is_wicketkeeper) + "\n")
+	return True
 
 def parse_text(infile, outfile):
+	players_dict = build_squads()
 	team_lists = open(infile,'r')
 	players_to_import_file = open(outfile,'w')
 	players_to_import_file.write("team_name,team_short,name,batting_vs_pace,batting_vs_spin,batting_aggression,bowling_skill,fielding_skill,bowling_type,is_captain,is_wicketkeeper\n")
-	home_team = construct_teams(team_lists, players_to_import_file)
-	_ = team_lists.readline()
-	away_team = construct_teams(team_lists, players_to_import_file)
+	players_remaining = True
+	while players_remaining:
+		players_remaining = construct_teams(team_lists, players_to_import_file, players_dict)
+		_ = team_lists.readline()
+
 	team_lists.close()
 	players_to_import_file.close()
 
