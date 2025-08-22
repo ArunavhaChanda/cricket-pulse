@@ -6,6 +6,10 @@ Run this file to start the cricket simulator web application.
 
 import sys
 import os
+import warnings
+
+# Suppress multiprocessing resource tracker warnings
+warnings.filterwarnings("ignore", message="resource_tracker: There appear to be.*leaked semaphore objects")
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

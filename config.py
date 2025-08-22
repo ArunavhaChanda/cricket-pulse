@@ -9,7 +9,7 @@ class Config:
     SQLALCHEMY_ECHO = False  # Set to True for SQL debugging
     
     # SocketIO settings
-    SOCKETIO_ASYNC_MODE = 'threading'
+    SOCKETIO_ASYNC_MODE = 'gevent'
     
     # Session settings
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
