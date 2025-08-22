@@ -199,6 +199,9 @@ class BattingScore {
         this.notOut = false;
         this.methodOfDismissal = method;
         
+        if (method === "caught behind" && matchState.wicketkeeper) {
+            this.caughtByPlayerName = matchState.wicketkeeper.name;
+        }
         if (method === "caught" && fielder) {
             this.caughtByPlayerName = fielder.name;
         }
@@ -219,7 +222,9 @@ class BattingScore {
         const playerNameSegment = this.playerName + (this.notOut ? " *" : "");
         
         let dismissalDetailSegment = "";
-        if (this.methodOfDismissal === "caught") {
+        if (this.methodOfDismissal === "caught behind") {
+            dismissalDetailSegment = "c. " + this.caughtByPlayerName + " b. " + this.bowledByPlayerName;
+        } else if (this.methodOfDismissal === "caught") {
             dismissalDetailSegment = "c. " + this.caughtByPlayerName + " b. " + this.bowledByPlayerName;
         } else if (this.methodOfDismissal === "stumped") {
             dismissalDetailSegment = "st. " + this.stumpedByPlayerName + " b. " + this.bowledByPlayerName;
@@ -516,6 +521,7 @@ function setupWebSocketListeners() {
                     extras: data.delivery_result.extras || 0,
                     isWicket: data.delivery_result.is_wicket || false,
                     dismissal_type: data.delivery_result.dismissal_type || null,
+                    fielder: data.delivery_result.fielder_involved || null,
                     ballNumber: (matchState.currentBalls || 0) + 1,
                     overNumber: Math.floor((matchState.currentBalls || 0) / 6) + 1
                 };
