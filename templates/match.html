@@ -1243,6 +1243,24 @@ function updatePlayerDisplay() {
     // Update names and stats
     if (matchState.striker) {
         document.getElementById('striker-name').textContent = matchState.striker.name;
+        
+        // Update striker attributes
+        const strikerAttrs = document.getElementById('striker-attributes');
+        strikerAttrs.innerHTML = `
+            <div class="attr-item">
+                <div class="attr-label">vs Pace</div>
+                <div class="attr-value">${matchState.striker.batting_vs_pace}</div>
+            </div>
+            <div class="attr-item">
+                <div class="attr-label">vs Spin</div>
+                <div class="attr-value">${matchState.striker.batting_vs_spin}</div>
+            </div>
+            <div class="attr-item">
+                <div class="attr-label">Aggression</div>
+                <div class="attr-value">${matchState.striker.batting_aggression}</div>
+            </div>
+        `;
+        
         // Get stats from scorecardManager for current innings
         const strikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.striker.id);
         if (strikerStats) {
@@ -1259,6 +1277,24 @@ function updatePlayerDisplay() {
     
     if (matchState.nonStriker) {
         document.getElementById('non-striker-name').textContent = matchState.nonStriker.name;
+        
+        // Update non-striker attributes
+        const nonStrikerAttrs = document.getElementById('non-striker-attributes');
+        nonStrikerAttrs.innerHTML = `
+            <div class="attr-item">
+                <div class="attr-label">vs Pace</div>
+                <div class="attr-value">${matchState.nonStriker.batting_vs_pace}</div>
+            </div>
+            <div class="attr-item">
+                <div class="attr-label">vs Spin</div>
+                <div class="attr-value">${matchState.nonStriker.batting_vs_spin}</div>
+            </div>
+            <div class="attr-item">
+                <div class="attr-label">Aggression</div>
+                <div class="attr-value">${matchState.nonStriker.batting_aggression}</div>
+            </div>
+        `;
+        
         // Get stats from scorecardManager for current innings
         const nonStrikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.nonStriker.id);
         if (nonStrikerStats) {
@@ -2209,7 +2245,41 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
     .player-name {
         font-size: 1.2rem;
         font-weight: bold;
+        margin-bottom: 6px;
+        color: #e3f2fd;
+    }
+
+    .player-attributes {
+        font-size: 0.8rem;
         margin-bottom: 8px;
+        padding: 6px 10px;
+        background: rgba(33,150,243,0.15);
+        border: 1px solid rgba(33,150,243,0.3);
+        border-radius: 6px;
+        color: #90caf9;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .player-attributes .attr-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .player-attributes .attr-label {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .player-attributes .attr-value {
+        font-weight: bold;
+        font-size: 0.9rem;
         color: #e3f2fd;
     }
 
@@ -2217,6 +2287,26 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         font-size: 0.9rem;
         opacity: 0.9;
         color: #bbdefb;
+    }
+
+    /* Responsive adjustments for player attributes */
+    @media (max-width: 768px) {
+        .player-attributes {
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+        }
+        
+        .player-attributes .attr-item {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .player-attributes .attr-label {
+            margin-bottom: 0;
+            margin-right: 8px;
+        }
     }
 
     .over-display {
@@ -2907,14 +2997,16 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         <div class="center-area">
             <!-- Current Batsmen -->
             <div class="player-status" id="player-status" style="display: none;">
-                <div class="batsman" id="striker">
-                    <div class="player-name" id="striker-name">-</div>
-                    <div class="player-stats" id="striker-stats">0* (0) | SR: 0.00<br>4s: 0 • 6s: 0</div>
-                </div>
-                <div class="batsman" id="non-striker">
-                    <div class="player-name" id="non-striker-name">-</div>
-                    <div class="player-stats" id="non-striker-stats">0* (0) | SR: 0.00<br>4s: 0 • 6s: 0</div>
-                </div>
+                        <div class="batsman" id="striker">
+            <div class="player-name" id="striker-name">-</div>
+            <div class="player-attributes" id="striker-attributes">-</div>
+            <div class="player-stats" id="striker-stats">0* (0) | SR: 0.00<br>4s: 0 • 6s: 0</div>
+        </div>
+        <div class="batsman" id="non-striker">
+            <div class="player-name" id="non-striker-name">-</div>
+            <div class="player-attributes" id="non-striker-attributes">-</div>
+            <div class="player-stats" id="non-striker-stats">0* (0) | SR: 0.00<br>4s: 0 • 0</div>
+        </div>
             </div>
 
             <!-- Current Over Display -->
