@@ -1444,10 +1444,9 @@ function handleWicket(data) {
         // Regular wicket - just select new batsman
         console.log('Regular wicket - just selecting new batsman');
         selectNewBatsman();
+        // Note: Button will be reset to "Next Ball" only after batsman selection is confirmed
+        // NOT here, as the user might cancel the selection
     }
-    
-    // Reset button to "Next Ball" after selection
-    resetNextBallButton();
 }
 
 function selectNewBatsman() {
@@ -1594,6 +1593,10 @@ function confirmNewBatsman() {
         setTimeout(() => {
             completeOver();
         }, 500);
+        // Note: Button will be reset to "Next Ball" after bowler selection is confirmed
+    } else {
+        // Regular wicket - reset button to "Next Ball" after batsman selection
+        resetNextBallButton();
     }
 }
 
@@ -1698,10 +1701,9 @@ function completeOver() {
         // More overs to go - select new bowler
         selectNewBowler();
         showNotification('Over completed!', 'info');
+        // Note: Button will be reset to "Next Ball" only after bowler selection is confirmed
+        // NOT here, as the user might cancel the selection
     }
-    
-    // Reset button to "Next Ball" after selection
-    resetNextBallButton();
 }
 
 function resetNextBallButton() {
@@ -1863,6 +1865,9 @@ function confirmNewBowler() {
     
     // Update ticker
     updateTicker(`⚾ ${matchState.currentBowler.name} will bowl the next over • ${matchState.currentBowler.bowling_type} bowling`);
+    
+    // Reset button to "Next Ball" after successful bowler selection
+    resetNextBallButton();
 }
 
 function closeNewBowlerModal() {
