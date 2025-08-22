@@ -824,14 +824,12 @@ function confirmPlayerSelection() {
     
     // Set the selected players
     matchState.striker = matchState.battingTeam.players.find(p => p.id == strikerId);
-    matchState.battingOrderPlayers.push(matchState.striker);
     if (matchState.currentInnings === 1) {
         matchState.firstInningsBattingOrderPlayers.push(matchState.striker);
     } else {
         matchState.secondInningsBattingOrderPlayers.push(matchState.striker);
     }
     matchState.nonStriker = matchState.battingTeam.players.find(p => p.id == nonStrikerId);
-    matchState.battingOrderPlayers.push(matchState.nonStriker);
     if (matchState.currentInnings === 1) {
         matchState.firstInningsBattingOrderPlayers.push(matchState.nonStriker);
     } else {
@@ -844,6 +842,22 @@ function confirmPlayerSelection() {
     
     // Update display
     updatePlayerDisplay();
+    
+    // Update bowler attributes for opening bowler
+    const bowlerAttrs = document.getElementById('bowler-attributes');
+    if (bowlerAttrs) {
+        const capitalizedType = matchState.currentBowler.bowling_type.charAt(0).toUpperCase() + matchState.currentBowler.bowling_type.slice(1);
+        bowlerAttrs.innerHTML = `
+            <div class="attr-item">
+                <div class="attr-label">Type</div>
+                <div class="attr-value">${capitalizedType}</div>
+            </div>
+            <div class="attr-item">
+                <div class="attr-label">Skill</div>
+                <div class="attr-value">${matchState.currentBowler.bowling_skill}</div>
+            </div>
+        `;
+    }
     
     // Show confirmation
     showNotification(`Opening players selected: ${matchState.striker.name}, ${matchState.nonStriker.name}, ${matchState.currentBowler.name}`, 'success');
@@ -1212,6 +1226,20 @@ function updatePlayerStats(data) {
         const bowlingFigures = matchState.scorecardManager.getBowlingFigures(matchState.currentInnings, matchState.currentBowler.id);
         
         document.getElementById('bowler-name').textContent = matchState.currentBowler.name;
+        
+        // Update bowler attributes
+        const bowlerAttrs = document.getElementById('bowler-attributes');
+        const capitalizedType = matchState.currentBowler.bowling_type.charAt(0).toUpperCase() + matchState.currentBowler.bowling_type.slice(1);
+        bowlerAttrs.innerHTML = `
+            <div class="attr-item">
+                <div class="attr-label">Type</div>
+                <div class="attr-value">${capitalizedType}</div>
+            </div>
+            <div class="attr-item">
+                <div class="attr-label">Skill</div>
+                <div class="attr-value">${matchState.currentBowler.bowling_skill}</div>
+            </div>
+        `;
     }
     
     // Swap strike on odd runs
@@ -1524,7 +1552,6 @@ function confirmNewBatsman() {
     } else {
         matchState.secondInningsBattingOrderPlayers.push(matchState.striker);
     }
-    matchState.battingOrderPlayers.push(matchState.striker);
     
     // Initialize batsman stats in scorecardManager (stats are already initialized to 0)
     // No need to manually set stats - they're managed by the scorecardManager
@@ -1796,6 +1823,20 @@ function confirmNewBowler() {
     
     // Update display
     document.getElementById('bowler-name').textContent = matchState.currentBowler.name;
+    
+    // Update bowler attributes
+    const bowlerAttrs = document.getElementById('bowler-attributes');
+    const capitalizedType = matchState.currentBowler.bowling_type.charAt(0).toUpperCase() + matchState.currentBowler.bowling_type.slice(1);
+    bowlerAttrs.innerHTML = `
+        <div class="attr-item">
+            <div class="attr-label">Type</div>
+            <div class="attr-value">${capitalizedType}</div>
+        </div>
+        <div class="attr-item">
+            <div class="attr-label">Skill</div>
+            <div class="attr-value">${matchState.currentBowler.bowling_skill}</div>
+        </div>
+    `;
     
     // Show confirmation
     showNotification(`${matchState.currentBowler.name} to bowl`, 'success');
@@ -2325,10 +2366,71 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         margin-bottom: 15px;
     }
 
+    .bowler-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
     .bowler-name {
         font-size: 1.1rem;
         font-weight: bold;
         color: #e3f2fd;
+    }
+
+    .bowler-attributes {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        background: rgba(255,69,0,0.15);
+        border: 1px solid rgba(255,69,0,0.3);
+        border-radius: 4px;
+        color: #ff8a65;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .bowler-attributes .attr-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .bowler-attributes .attr-label {
+        font-size: 0.65rem;
+        opacity: 0.8;
+        margin-bottom: 1px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .bowler-attributes .attr-value {
+        font-weight: bold;
+        font-size: 0.8rem;
+        color: #ffcc02;
+    }
+
+    /* Responsive adjustments for bowler attributes */
+    @media (max-width: 768px) {
+        .bowler-attributes {
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px;
+        }
+        
+        .bowler-attributes .attr-item {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .bowler-attributes .attr-label {
+            margin-bottom: 0;
+            margin-right: 8px;
+        }
     }
 
     .over-number {
@@ -3012,7 +3114,10 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
             <!-- Current Over Display -->
             <div class="over-display" id="over-display" style="display: none;">
                 <div class="current-over-info">
-                    <div class="bowler-name" id="bowler-name">-</div>
+                    <div class="bowler-info">
+                        <div class="bowler-name" id="bowler-name">-</div>
+                        <div class="bowler-attributes" id="bowler-attributes">-</div>
+                    </div>
                     <div class="over-number" id="over-number">Over 0.0</div>
                 </div>
                 <div class="balls-container" id="balls-container">
