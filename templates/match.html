@@ -429,7 +429,10 @@ class ScorecardManager {
 let matchState = {
     currentInnings: 1, // 1 for first innings, 2 for second innings
     battingTeam: null,
-    battingOrderPlayers: null,
+    firstInningsBattingOrderPlayers: [], // Track first innings batting order separately
+    secondInningsBattingOrderPlayers: [], // Track second innings batting order separately
+    battingOrderPlayers: null, // Current innings batting order (will point to appropriate array)
+    firstInningsBattingTeam: null, // Store first innings batting team
     bowlingTeam: null,
     striker: null,
     nonStriker: null,
@@ -636,6 +639,7 @@ function handleTossDecision(data) {
     
     // Update match state
     matchState.battingTeam = data.batting_first === MATCH_DATA.team1.short_name ? MATCH_DATA.team1 : MATCH_DATA.team2;
+    matchState.firstInningsBattingTeam = matchState.battingTeam; // Store first innings batting team
     matchState.battingOrderPlayers = [];
     matchState.bowlingTeam = data.batting_first === MATCH_DATA.team1.short_name ? MATCH_DATA.team2 : MATCH_DATA.team1;
     
@@ -684,7 +688,8 @@ function handleMatchStart(data) {
     matchState.wicketsLost = 0;
     matchState.ballsFaced = 0;
     matchState.currentBalls = 0;
-    matchState.battingOrderPlayers = [];
+    matchState.firstInningsBattingOrderPlayers = []; // Initialize first innings batting order
+    matchState.battingOrderPlayers = matchState.firstInningsBattingOrderPlayers; // Point to first innings array
     matchState.wicketkeeper = matchState.bowlingTeam.players.find(p => p.is_wicketkeeper);
     
     // Initialize stats tracking for first innings
@@ -820,8 +825,18 @@ function confirmPlayerSelection() {
     // Set the selected players
     matchState.striker = matchState.battingTeam.players.find(p => p.id == strikerId);
     matchState.battingOrderPlayers.push(matchState.striker);
+    if (matchState.currentInnings === 1) {
+        matchState.firstInningsBattingOrderPlayers.push(matchState.striker);
+    } else {
+        matchState.secondInningsBattingOrderPlayers.push(matchState.striker);
+    }
     matchState.nonStriker = matchState.battingTeam.players.find(p => p.id == nonStrikerId);
     matchState.battingOrderPlayers.push(matchState.nonStriker);
+    if (matchState.currentInnings === 1) {
+        matchState.firstInningsBattingOrderPlayers.push(matchState.nonStriker);
+    } else {
+        matchState.secondInningsBattingOrderPlayers.push(matchState.nonStriker);
+    }
     matchState.currentBowler = matchState.bowlingTeam.players.find(p => p.id == bowlerId);
     
     // Close modal
@@ -1468,6 +1483,11 @@ function confirmNewBatsman() {
     
     // Set as new striker
     matchState.striker = newBatsman;
+    if (matchState.currentInnings === 1) {
+        matchState.firstInningsBattingOrderPlayers.push(matchState.striker);
+    } else {
+        matchState.secondInningsBattingOrderPlayers.push(matchState.striker);
+    }
     matchState.battingOrderPlayers.push(matchState.striker);
     
     // Initialize batsman stats in scorecardManager (stats are already initialized to 0)
@@ -1845,7 +1865,8 @@ function startSecondInnings() {
     matchState.wicketsLost = 0;
     matchState.ballsFaced = 0;
     matchState.currentBalls = 0;
-    matchState.battingOrderPlayers = [];
+    matchState.secondInningsBattingOrderPlayers = []; // Initialize second innings batting order
+    matchState.battingOrderPlayers = matchState.secondInningsBattingOrderPlayers; // Point to second innings array
     matchState.wicketkeeper = matchState.bowlingTeam.players.find(p => p.is_wicketkeeper);
     
     // Initialize stats tracking for second innings
@@ -3096,14 +3117,14 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         if (fullScorecard.firstInnings) {
             scorecardHTML += '<div class="innings-section" id="innings-1">';
             scorecardHTML += '<h3>First Innings</h3>';
-            scorecardHTML += '<h4>Batting</h4>';
+            scorecardHTML += `<h4>${matchState.battingTeam.full_name} Batting</h4>`;
             scorecardHTML += '<div class="scorecard-table batting-table">';
             scorecardHTML += '<div class="scorecard-header">';
             scorecardHTML += '<div>Player</div><div>Dismissal</div><div>Runs (Balls)</div><div>SR</div><div>4s/6s</div>';
             scorecardHTML += '</div>';
             
             // First show players in batting order who have batted
-            matchState.battingOrderPlayers.forEach(player => {
+            matchState.firstInningsBattingOrderPlayers.forEach(player => {
                 const battingScore = fullScorecard.firstInnings.batting.find(bs => bs.playerName === player.name);
                 if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
                 
@@ -3120,9 +3141,14 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 scorecardHTML += '</div>';
             });
             
-            // Then show remaining players in batting team who haven't batted yet
-            matchState.battingTeam.players.forEach(player => {
-                if (matchState.battingOrderPlayers.some(bop => bop.id === player.id)) return; // Skip if already shown
+            // Then show remaining players in first innings team who haven't batted yet
+            // Use the stored first innings batting team
+            const firstInningsTeam = matchState.firstInningsBattingTeam;
+            firstInningsTeam.players.forEach(player => {
+                const hasBatted = fullScorecard.firstInnings.batting.some(bs => 
+                    bs.playerName === player.name && bs.ballsFaced > 0
+                );
+                if (hasBatted) return; // Skip if already shown
                 
                 scorecardHTML += '<div class="scorecard-row not-batted">';
                 scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
@@ -3168,7 +3194,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
             
             scorecardHTML += '</div>';
             
-            scorecardHTML += '<h4>Bowling</h4>';
+            scorecardHTML += `<h4>${matchState.bowlingTeam.full_name} Bowling</h4>`;
             scorecardHTML += '<div class="scorecard-table bowling-table">';
             scorecardHTML += '<div class="scorecard-header">';
             scorecardHTML += '<div>Bowler</div><div>Overs</div><div>Runs</div><div>Wickets</div><div>Economy</div>';
@@ -3195,14 +3221,14 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         if (fullScorecard.secondInnings && matchState.currentInnings > 1) {
             scorecardHTML += '<div class="innings-section" id="innings-2" style="display: none;">';
             scorecardHTML += '<h3>Second Innings</h3>';
-            scorecardHTML += '<h4>Batting</h4>';
+            scorecardHTML += `<h4>${matchState.battingTeam.full_name} Batting</h4>`;
             scorecardHTML += '<div class="scorecard-table batting-table">';
             scorecardHTML += '<div class="scorecard-header">';
             scorecardHTML += '<div>Player</div><div>Dismissal</div><div>Runs (Balls)</div><div>SR</div><div>4s/6s</div>';
             scorecardHTML += '</div>';
             
             // First show players in batting order who have batted
-            matchState.battingOrderPlayers.forEach(player => {
+            matchState.secondInningsBattingOrderPlayers.forEach(player => {
                 const battingScore = fullScorecard.secondInnings.batting.find(bs => bs.playerName === player.name);
                 if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
                 
@@ -3219,9 +3245,14 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
                 scorecardHTML += '</div>';
             });
             
-            // Then show remaining players in batting team who haven't batted yet
-            matchState.battingTeam.players.forEach(player => {
-                if (matchState.battingOrderPlayers.some(bop => bop.id === player.id)) return; // Skip if already shown
+            // Then show remaining players in second innings team who haven't batted yet
+            // We need to get the second innings team from the current match state
+            const secondInningsTeam = matchState.battingTeam; // This is the current second innings batting team
+            secondInningsTeam.players.forEach(player => {
+                const hasBatted = fullScorecard.secondInnings.batting.some(bs => 
+                    bs.playerName === player.name && bs.ballsFaced > 0
+                );
+                if (hasBatted) return; // Skip if already shown
                 
                 scorecardHTML += '<div class="scorecard-row not-batted">';
                 scorecardHTML += `<div>${player.name}${player.is_captain ? ' (c)' : ''}${player.is_wicketkeeper ? ' (wk)' : ''}</div>`;
@@ -3267,7 +3298,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
             
             scorecardHTML += '</div>';
             
-            scorecardHTML += '<h4>Bowling</h4>';
+            scorecardHTML += `<h4>${matchState.bowlingTeam.full_name} Bowling</h4>`;
             scorecardHTML += '<div class="scorecard-table bowling-table">';
             scorecardHTML += '<div class="scorecard-header">';
             scorecardHTML += '<div>Bowler</div><div>Overs</div><div>Runs</div><div>Wickets</div><div>Economy</div>';
