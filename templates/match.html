@@ -232,7 +232,7 @@ class BattingScore {
             dismissalDetailSegment = "lbw b. " + this.bowledByPlayerName;
         }
         
-        const bowledSegment = this.notOut ? "" : "b. " + this.bowledByPlayerName;
+        const bowledSegment = this.notOut ? "not out" : "b. " + this.bowledByPlayerName;
         const scoreSegment = `${this.runsScored}(${this.ballsFaced})`;
         const strikeRateSegment = this.getStrikeRate().toFixed(2);
         
