@@ -17,6 +17,34 @@ class CricketGameEngine:
         self.match = match
         self.location_multipliers = self._get_location_multipliers(match.location)
         
+        # Persistent state that survives between API calls
+        self.current_innings = 1
+        self.current_over = 1
+        self.current_ball = 1
+        self.total_runs = 0
+        self.wickets_lost = 0
+        self.balls_faced = 0
+        
+        # Player state tracking
+        self.current_bowler = None
+        self.current_striker = None
+        self.current_non_striker = None
+        self.bowling_order = []
+        self.batting_order = []
+        
+        # Match statistics
+        self.partnership_runs = 0
+        self.last_delivery_result = None
+        self.consecutive_dots = 0
+        self.consecutive_boundaries = 0
+        
+        # Weather and pitch conditions (can change during match)
+        self.pitch_condition = 'normal'  # normal, dry, wet, deteriorating
+        self.weather_condition = 'clear'  # clear, overcast, rainy
+        self.light_condition = 'good'    # good, poor, floodlit
+        
+        print(f"Initialized CricketGameEngine for match {match.match_id}")
+        
     def _get_location_multipliers(self, location: str) -> Dict[str, float]:
         '''Get location-based attribute multipliers'''
         multipliers = {
@@ -47,7 +75,55 @@ class CricketGameEngine:
         }
         return multipliers.get(location, multipliers['default'])
     
-    def apply_location_adjustments(self, player_attributes: Dict[str, float]) -> Dict[str, float]:
+    def get_match_state(self) -> Dict[str, Any]:
+        """Get current match state for debugging/monitoring"""
+        return {
+            'current_innings': self.current_innings,
+            'current_over': self.current_over,
+            'current_ball': self.current_ball,
+            'total_runs': self.total_runs,
+            'wickets_lost': self.wickets_lost,
+            'balls_faced': self.balls_faced,
+            'partnership_runs': self.partnership_runs,
+            'consecutive_dots': self.consecutive_dots,
+            'consecutive_boundaries': self.consecutive_boundaries,
+            'pitch_condition': self.pitch_condition,
+            'weather_condition': self.weather_condition
+        }
+    
+    def update_match_state(self, delivery_result: DeliveryResult):
+        """Update persistent state after a delivery"""
+        self.last_delivery_result = delivery_result
+        
+        if delivery_result.is_wicket:
+            self.wickets_lost += 1
+            self.partnership_runs = 0
+        else:
+            self.partnership_runs += delivery_result.runs_scored
+            
+        if delivery_result.extras == 0:  # Only count legal deliveries
+            self.balls_faced += 1
+            
+        self.total_runs += delivery_result.runs_scored + delivery_result.extras
+        
+        # Update ball count
+        if delivery_result.extras == 0:
+            self.current_ball += 1
+            if self.current_ball > 6:
+                self.current_ball = 1
+                self.current_over += 1
+    
+    def set_players(self, striker_id: int, non_striker_id: int, bowler_id: int):
+        """Set current players (called when players change)"""
+        from models import Player
+        self.current_striker = Player.query.get(striker_id)
+        self.current_non_striker = Player.query.get(non_striker_id)
+        self.current_bowler = Player.query.get(bowler_id)
+        
+        # Reset partnership when new batsmen come in
+        self.partnership_runs = 0
+    
+    def apply_location_adjustments(self, player_attributes: Dict[str, float]) -> Dict[str, Any]:
         '''Apply location-based adjustments to player attributes'''
         adjusted = player_attributes.copy()
         for attr, multiplier in self.location_multipliers.items():
@@ -105,7 +181,24 @@ class CricketGameEngine:
             'fielding_skill': wicketkeeper.fielding_skill
         })
 
-
+        # Update persistent state
+        self.current_over = current_over
+        self.current_ball = ball_in_over
+        self.current_bowler = bowler
+        self.current_striker = striker
+        self.current_non_striker = non_striker
+        
+        # Track consecutive deliveries for momentum
+        if self.last_delivery_result:
+            if self.last_delivery_result.runs_scored == 0:
+                self.consecutive_dots += 1
+            else:
+                self.consecutive_dots = 0
+                
+            if self.last_delivery_result.runs_scored >= 4:
+                self.consecutive_boundaries += 1
+            else:
+                self.consecutive_boundaries = 0
 
         # Add free hit adjustments
 

@@ -7,6 +7,9 @@ from simengine.delivery_result import DeliveryResult
 import uuid
 import random
 
+# Global storage for active game engines
+active_engines = {}  # match_id -> CricketGameEngine instance
+
 def register_api_routes(app, db, socketio):
     '''Register all API routes with the Flask app'''
     from models import db, Team, Player, Match, Innings, Delivery, BattingStats, BowlingStats
@@ -293,6 +296,10 @@ def register_api_routes(app, db, socketio):
         
         db.session.commit()
         
+        # Create and store the cricket engine for this match
+        engine = CricketGameEngine(match)
+        active_engines[match_id] = engine
+        
         # Emit match start
         socketio.emit('match_started', {
             'match_id': match_id,
@@ -344,9 +351,12 @@ def register_api_routes(app, db, socketio):
             
             print(f"DEBUG: Found innings {current_innings.id}")
             
-            # Initialize cricket engine with your logic
-            print("DEBUG: Initializing CricketGameEngine")
-            engine = CricketGameEngine(match)
+            # Get the persistent cricket engine for this match
+            if match_id not in active_engines:
+                return jsonify({'error': 'Match engine not found. Please restart the match.'}), 400
+            
+            engine = active_engines[match_id]
+            print("DEBUG: Using existing CricketGameEngine")
             
             # Calculate current over and ball
             total_balls = len(current_innings.deliveries)
@@ -355,10 +365,16 @@ def register_api_routes(app, db, socketio):
             
             print(f"DEBUG: Simulating delivery - Over: {current_over}, Ball: {ball_in_over}")
             
+            # Update engine with current players
+            engine.set_players(striker_id, non_striker_id, bowler_id)
+            
             # Simulate delivery using your cricket logic
             delivery_result = engine.simulate_delivery(
                 bowler_id, striker_id, non_striker_id, fielder_id, wicketkeeper_id, current_over, ball_in_over
             )
+            
+            # Update persistent state in the engine
+            engine.update_match_state(delivery_result)
             
             print(f"DEBUG: Delivery result: {delivery_result}")
             
@@ -449,6 +465,38 @@ def register_api_routes(app, db, socketio):
         return jsonify({
             'total_matches': total_matches,
             'active_matches': active_matches
+        })
+    
+    # Clean up function for when matches end
+    def cleanup_match_engine(match_id):
+        """Remove the engine when a match ends"""
+        if match_id in active_engines:
+            del active_engines[match_id]
+            print(f"Cleaned up engine for match {match_id}")
+    
+    # Add cleanup to match completion
+    @app.route('/api/matches/<match_id>/end', methods=['POST'])
+    def end_match(match_id):
+        """End a match and clean up resources"""
+        match = Match.query.filter_by(match_id=match_id).first_or_404()
+        match.status = 'completed'
+        db.session.commit()
+        
+        # Clean up the engine
+        cleanup_match_engine(match_id)
+        
+        return jsonify({'message': 'Match ended successfully'})
+    
+    @app.route('/api/matches/<match_id>/state', methods=['GET'])
+    def get_match_state(match_id):
+        """Get current match state from the engine"""
+        if match_id not in active_engines:
+            return jsonify({'error': 'Match engine not found'}), 404
+        
+        engine = active_engines[match_id]
+        return jsonify({
+            'match_id': match_id,
+            'state': engine.get_match_state()
         })
 
 
