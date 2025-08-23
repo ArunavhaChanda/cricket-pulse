@@ -1,42 +1,33 @@
 # cricket_engine.py - Integration point for your existing Python logic
 import random
 import json
+from turtle import home
 from simengine.delivery_result import DeliveryResult
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
+from simengine.batting_score import BattingScore
+from simengine.bowling_figures import BowlingFigures
+from simengine.player_and_team import TeamObject, PlayerObject
+from simengine.innings import InningsState, Game
 
 EASY_BOWLING_ON = False
+MAX_OVERS = 20
 
 class CricketGameEngine:
     '''
-    Integration wrapper for your existing Python cricket simulation logic.
-    Replace the methods below with calls to your actual game engine.
+    Integration wrapper for Python cricket simulation logic.
     '''
+    game = None
     
     def __init__(self, match):
+        from models import TeamObject, PlayerObject, Match
         self.match = match
-        self.location_multipliers = self._get_location_multipliers(match.location)
-        
-        # Persistent state that survives between API calls
-        self.current_innings = 1
-        self.current_over = 1
-        self.current_ball = 1
-        self.total_runs = 0
-        self.wickets_lost = 0
-        self.balls_faced = 0
-        
-        # Player state tracking
-        self.current_bowler = None
-        self.current_striker = None
-        self.current_non_striker = None
-        self.bowling_order = []
-        self.batting_order = []
-        
-        # Match statistics
-        self.partnership_runs = 0
-        self.last_delivery_result = None
-        self.consecutive_dots = 0
-        self.consecutive_boundaries = 0
+        self.location_multipliers = self.apply_location_adjustments(match.location)
+
+        home_team = self._build_team(match.team1)
+        away_team = self._build_team(match.team2)
+
+        self.game = Game(home_team, away_team)        
         
         # Weather and pitch conditions (can change during match)
         self.pitch_condition = 'normal'  # normal, dry, wet, deteriorating
@@ -44,36 +35,33 @@ class CricketGameEngine:
         self.light_condition = 'good'    # good, poor, floodlit
         
         print(f"Initialized CricketGameEngine for match {match.match_id}")
+    
+    def _build_team(self, team: TeamObject) -> TeamObject:
+        '''Build a team from a Team object'''
+        from models import TeamObject, PlayerObject
+
+        players_list = []
+        for player in team.players:
+            players_list.append(PlayerObject(player.name, player.batting_vs_pace, player.batting_vs_spin, player.batting_aggression, player.bowling_skill, player.fielding_skill, player.is_wicketkeeper, player.is_captain, player.bowling_type))
+
+        return TeamObject(team.id, team.full_name, team.short_name, False, players_list)
         
-    def _get_location_multipliers(self, location: str) -> Dict[str, float]:
+    def apply_location_adjustments(self, location: str) -> Dict[str, float]:
         '''Get location-based attribute multipliers'''
-        multipliers = {
-            'mumbai': {
-                'batting_vs_pace': 1.1,
-                'batting_vs_spin': 0.9,
-                'bowling_skill': 1.0,
-                'fielding_skill': 1.0
-            },
-            'chennai': {
-                'batting_vs_pace': 0.9,
-                'batting_vs_spin': 1.1,
-                'bowling_skill': 1.0,
-                'fielding_skill': 1.0
-            },
-            'delhi': {
-                'batting_vs_pace': 1.0,
-                'batting_vs_spin': 1.0,
-                'bowling_skill': 1.1,
-                'fielding_skill': 1.0
-            },
-            'default': {
-                'batting_vs_pace': 1.0,
-                'batting_vs_spin': 1.0,
-                'bowling_skill': 1.0,
-                'fielding_skill': 1.0
-            }
-        }
-        return multipliers.get(location, multipliers['default'])
+        from simengine.locations import get_location_short_code
+        self.game.set_location(get_location_short_code(location))
+        self.game.set_ground_adjustments()
+
+    def start_first_innings(self, batting_first_id, batting_second_id):
+        batting_team = self.game.home_team if batting_first_id == self.game.home_team.team_id else self.game.away_team
+        bowling_team = self.game.away_team if batting_first_id == self.game.home_team.team_id else self.game.home_team
+        first_innings = InningsState(1, MAX_OVERS, batting_team, bowling_team, self.game.home_team.players[0], self.game.home_team.players[1], 0, EASY_BOWLING_ON)
+        self.game.set_first_innings(first_innings)
+
+    def start_second_innings(self):
+        second_innings = InningsState(2, MAX_OVERS, self.game.first_innings.fielding_team, self.game.first_innings.batting_team, self.game.home_team.players[0], self.game.home_team.players[1], self.game.first_innings.total_runs + 1, EASY_BOWLING_ON)
+        self.game.set_second_innings(second_innings)
+
     
     def get_match_state(self) -> Dict[str, Any]:
         """Get current match state for debugging/monitoring"""
@@ -122,15 +110,7 @@ class CricketGameEngine:
         
         # Reset partnership when new batsmen come in
         self.partnership_runs = 0
-    
-    def apply_location_adjustments(self, player_attributes: Dict[str, float]) -> Dict[str, Any]:
-        '''Apply location-based adjustments to player attributes'''
-        adjusted = player_attributes.copy()
-        for attr, multiplier in self.location_multipliers.items():
-            if attr in adjusted:
-                adjusted[attr] *= multiplier
-        return adjusted
-    
+        
     def simulate_delivery(self, bowler_id: int, striker_id: int, non_striker_id: int, fielder_id: int,
                          wicketkeeper_id: int,
                          current_over: int, ball_in_over: int) -> DeliveryResult:

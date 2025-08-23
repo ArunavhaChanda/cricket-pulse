@@ -1,3 +1,13 @@
+TODO for backend support:
+- Update opening + new batsmen
+- Update opening + new bowler
+- handle innings transitions
+- Add API/socket calls to transfer data
+- Add data updates on JS side with socket updates
+- Lighten load from front-end
+- Stats retrieval APIs
+
+
 Add locations to db
 Modifiers/multipliers
 Stats for both innings
@@ -8,6 +18,8 @@ Phase aggression adjustments
 Partnerships
 Ball by ball Cricinfo-style timeline
 Animations of 50s and milestones
+
+Super Over
 
 Semaphore leak
 Current matches list

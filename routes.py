@@ -246,6 +246,16 @@ def register_api_routes(app, db, socketio):
         
         match.status = 'ready_to_start'
         db.session.commit()
+
+        # Get the persistent cricket engine for this match
+        if match_id not in active_engines:
+            return jsonify({'error': 'Match engine not found. Please restart the match.'}), 400
+        
+        engine = active_engines[match_id]
+        print("DEBUG: Using existing CricketGameEngine")
+
+        engine.start_first_innings(match.batting_first_id, match.batting_second_id)
+
         
         # Emit decision via WebSocket
         socketio.emit('toss_decision', {
