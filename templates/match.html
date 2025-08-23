@@ -2662,7 +2662,7 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
     
     .full-scorecard h4 {
         color: #4caf50;
-        margin: 20px 0 15px 0;
+        margin: 0px 0 15px 0;
         font-size: 1.2rem;
     }
     
@@ -3347,7 +3347,6 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         // First Innings
         if (fullScorecard.firstInnings) {
             scorecardHTML += '<div class="innings-section" id="innings-1">';
-            scorecardHTML += '<h3>First Innings</h3>';
             scorecardHTML += `<h4>${matchState.battingTeam.full_name} Batting</h4>`;
             scorecardHTML += '<div class="scorecard-table batting-table">';
             scorecardHTML += '<div class="scorecard-header">';
@@ -3451,7 +3450,6 @@ if (MATCH_DATA.status === 'first_innings' || MATCH_DATA.status === 'second_innin
         // Second Innings (if completed)
         if (fullScorecard.secondInnings && matchState.currentInnings > 1) {
             scorecardHTML += '<div class="innings-section" id="innings-2" style="display: none;">';
-            scorecardHTML += '<h3>Second Innings</h3>';
             scorecardHTML += `<h4>${matchState.battingTeam.full_name} Batting</h4>`;
             scorecardHTML += '<div class="scorecard-table batting-table">';
             scorecardHTML += '<div class="scorecard-header">';
