@@ -14,6 +14,9 @@ Stats for both innings
 Differentiate wide and no ball
 Wicketkeeper can't bowl
 Phase aggression adjustments
+Fix ticker when single taken (who is the striker)
+Check bug where select new bowler presented again after first over selection in second innings
+Full scorecard shows wrong team name for first innings
 
 Partnerships
 Ball by ball Cricinfo-style timeline
