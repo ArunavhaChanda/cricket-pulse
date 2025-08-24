@@ -17,6 +17,10 @@ Phase aggression adjustments
 Fix ticker when single taken (who is the striker)
 Check bug where select new bowler presented again after first over selection in second innings
 Full scorecard shows wrong team name for first innings
+Adjust individual live score layout
+Second innings - Adjust /10 in 1st inns total
+Check what is feeding X/20 overs at top vs X from Y balls needed
+
 
 Partnerships
 Ball by ball Cricinfo-style timeline
