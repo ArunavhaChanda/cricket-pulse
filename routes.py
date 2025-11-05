@@ -171,6 +171,11 @@ def register_api_routes(app, db, socketio):
         
         db.session.add(match)
         db.session.commit()
+
+        # Create and store the cricket engine for this match
+        if match.match_id not in active_engines:
+            engine = CricketGameEngine(match)
+            active_engines[match.match_id] = engine
         
         return jsonify({
             'match_id': match.match_id,
@@ -250,7 +255,6 @@ def register_api_routes(app, db, socketio):
         # Get the persistent cricket engine for this match
         if match_id not in active_engines:
             return jsonify({'error': 'Match engine not found. Please restart the match.'}), 400
-        
         engine = active_engines[match_id]
         print("DEBUG: Using existing CricketGameEngine")
 
@@ -296,8 +300,8 @@ def register_api_routes(app, db, socketio):
         batting_team = match.batting_first
         bowling_team = match.batting_second
         
-        for player in batting_team.players:
-            stats = BattingStats(innings_id=innings.id, player_id=player.id)
+        for position, player in enumerate(batting_team.players):
+            stats = BattingStats(innings_id=innings.id, player_id=player.id, batting_position=position + 1)
             db.session.add(stats)
         
         for player in bowling_team.players:
@@ -305,10 +309,6 @@ def register_api_routes(app, db, socketio):
             db.session.add(stats)
         
         db.session.commit()
-        
-        # Create and store the cricket engine for this match
-        engine = CricketGameEngine(match)
-        active_engines[match_id] = engine
         
         # Emit match start
         socketio.emit('match_started', {
@@ -420,6 +420,60 @@ def register_api_routes(app, db, socketio):
                     current_innings.overs_completed += 1
                     current_innings.current_over_balls = 0
             
+            # Update batting stats for striker
+            batting_stats = BattingStats.query.filter_by(
+                innings_id=current_innings.id,
+                player_id=striker_id
+            ).first()
+            
+            if batting_stats:
+                # Handle extras (wide, no ball) - don't count as ball faced
+                if delivery_result.extras == 0:
+                    # HANDLE NO BALL BEING COUNTED AS A BALL FACED
+                    batting_stats.balls_faced += 1
+                    
+                    if delivery_result.runs_scored == 0:
+                        batting_stats.dots += 1
+                    if delivery_result.is_wicket:
+                        batting_stats.is_out = True
+                        batting_stats.dismissal_type = delivery_result.dismissal_type
+                        batting_stats.bowled_by_player_name = engine.current_bowler.name
+                        if delivery_result.dismissal_type == "caught":
+                            batting_stats.caught_by_player_name = delivery_result.fielder_involved
+                        elif delivery_result.dismissal_type == "stumped":
+                            batting_stats.stumped_by_player_name = engine.current_wicketkeeper.name
+                        elif delivery_result.dismissal_type == "caught behind":
+                            batting_stats.caught_by_player_name = engine.current_wicketkeeper.name
+                    else:
+                        batting_stats.runs_scored += delivery_result.runs_scored
+                        if delivery_result.runs_scored == 4:
+                            batting_stats.fours += 1
+                        elif delivery_result.runs_scored == 6:
+                            batting_stats.sixes += 1
+            
+            # Update bowling stats for bowler
+            bowling_stats = BowlingStats.query.filter_by(
+                innings_id=current_innings.id,
+                player_id=bowler_id
+            ).first()
+            
+            if bowling_stats:
+                # Check if current delivery is legal
+                is_legal_delivery = (delivery_result.extras == 0)
+                
+                if is_legal_delivery:
+                    # Update balls bowled (legal deliveries only)
+                    bowling_stats.balls_bowled += 1
+                    if delivery_result.runs_scored == 0:
+                        bowling_stats.dots += 1
+                
+                # Update runs conceded (including extras)
+                bowling_stats.runs_conceded += delivery_result.runs_scored + delivery_result.extras
+                
+                # Update wickets
+                if delivery_result.is_wicket:
+                    bowling_stats.wickets_taken += 1
+            
             print("DEBUG: Committing to database")
             db.session.commit()
             
@@ -445,6 +499,72 @@ def register_api_routes(app, db, socketio):
             
         except Exception as e:
             print(f"ERROR in simulate_delivery: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+    @app.route('/api/matches/<match_id>/innings/<int:innings_number>/stats', methods=['GET'])
+    def get_innings_stats(match_id, innings_number):
+        """Get batting and bowling stats for a specific innings"""
+        try:
+            # WHY MULTIPLE IDS?
+            match = Match.query.filter_by(match_id=match_id).first_or_404()
+            innings = Innings.query.filter_by(
+                match_id=match.id,
+                innings_number=innings_number
+            ).first()
+            
+            if not innings:
+                return jsonify({'error': 'Innings not found'}), 404
+            
+            # Get batting stats
+            batting_stats_list = []
+            batting_stats_records = BattingStats.query.filter_by(
+                innings_id=innings.id
+            ).order_by(BattingStats.batting_position).join(Player).all()
+            
+            for stats in batting_stats_records:
+                # Convert to dictionary format for JSON serialization
+                batting_stats_list.append({
+                    'player_id': stats.player_id,
+                    'player_name': stats.player.name,
+                    'runs_scored': stats.runs_scored,
+                    'balls_faced': stats.balls_faced,
+                    'not_out': not stats.is_out,
+                    'sixes_hit': stats.sixes,
+                    'fours_hit': stats.fours,
+                    'dots': stats.dots,
+                    'method_of_dismissal': stats.dismissal_type or '',
+                    'bowled_by_player_name': stats.bowled_by_player_name or '',
+                    'caught_by_player_name': stats.caught_by_player_name or '',
+                    'stumped_by_player_name': stats.stumped_by_player_name or ''
+                })
+            
+            # Get bowling stats
+            bowling_stats_list = []
+            bowling_stats_records = BowlingStats.query.filter_by(
+                innings_id=innings.id
+            ).join(Player).all()
+            
+            for stats in bowling_stats_records:
+                # Convert to dictionary format for JSON serialization
+                bowling_stats_list.append({
+                    'player_id': stats.player_id,
+                    'player_name': stats.player.name,
+                    'deliveries': stats.balls_bowled,
+                    'dot_balls': stats.dots,
+                    'runs_conceded': stats.runs_conceded,
+                    'wickets_taken': stats.wickets_taken
+                })
+                            
+            return jsonify({
+                'innings_number': innings_number,
+                'batting_stats': batting_stats_list,
+                'bowling_stats': bowling_stats_list
+            })
+            
+        except Exception as e:
+            print(f"ERROR in get_innings_stats: {str(e)}")
             import traceback
             traceback.print_exc()
             return jsonify({'error': f'Internal server error: {str(e)}'}), 500

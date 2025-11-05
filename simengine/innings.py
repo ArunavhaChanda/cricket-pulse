@@ -248,11 +248,11 @@ class Game:
 		team2_skill = 0
 		team1_aggr = 0
 		team2_aggr = 0
-		team1_batsmen = team1.players[:6]
+		team1_batsmen = list(team1.players)[:6]
 		for team1_player in team1_batsmen:
 			team1_skill += (team1_player.batting_skill["spin"] + team1_player.batting_skill["pace"])
 			team1_aggr += team1_player.batting_aggr
-		team2_batsmen = team2.players[:6]
+		team2_batsmen = list(team2.players)[:6]
 		for team2_player in team2_batsmen:
 			team2_skill += (team2_player.batting_skill["spin"] + team2_player.batting_skill["pace"])
 			team2_aggr += team2_player.batting_aggr

@@ -6,6 +6,7 @@ def pick_fielder(fielding_team):
 	return fielding_team.players[int(random.random() * 11)]
 
 class PlayerObject:
+	player_id = 0
 	name = ""
 	last_name = ""
 	batting_skill = {"pace": 0.0, "spin": 0.0, "avg": 0.0}
@@ -17,7 +18,8 @@ class PlayerObject:
 	is_captain = False
 	batting_score = None
 	bowling_figures = None
-	def __init__(self, name, batting_skill_pace, batting_skill_spin, batting_aggr, bowling_skill, fielding_skill, is_wicketkeeper, is_captain, bowler_type):
+	def __init__(self, player_id, name, batting_skill_pace, batting_skill_spin, batting_aggr, bowling_skill, fielding_skill, is_wicketkeeper, is_captain, bowler_type):
+		self.player_id = player_id
 		self.name = name
 		self.last_name = name.split()[-1]
 		self.batting_skill = {"pace": batting_skill_pace, "spin": batting_skill_spin, "avg": (batting_skill_pace + batting_skill_spin)/2}
@@ -46,6 +48,7 @@ class TeamObject:
 	short_name = ""
 	is_ai_team = False
 	players = []
+	players_map = {}
 	final_batting_order = []
 	wicketkeeper = None
 	captain = None
@@ -60,6 +63,7 @@ class TeamObject:
 		self.is_winner = False
 		self.final_batting_order = []
 		for player in players_list:
+			self.players_map[player.player_id] = player
 			if player.is_wicketkeeper:
 				self.wicketkeeper = player
 			if player.is_captain:

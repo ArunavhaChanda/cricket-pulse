@@ -11,38 +11,49 @@ from simengine.player_and_team import TeamObject, PlayerObject
 from simengine.innings import InningsState, Game
 
 EASY_BOWLING_ON = False
-MAX_OVERS = 20
 
 class CricketGameEngine:
     '''
     Integration wrapper for Python cricket simulation logic.
     '''
-    game = None
     
     def __init__(self, match):
-        from models import TeamObject, PlayerObject, Match
+        from models import Match  # Match is the database model
         self.match = match
-        self.location_multipliers = self.apply_location_adjustments(match.location)
+        self.max_overs = 20 if self.match.match_type == 'T20' else 50
 
         home_team = self._build_team(match.team1)
         away_team = self._build_team(match.team2)
 
         self.game = Game(home_team, away_team)        
         
+        self.location_multipliers = self.apply_location_adjustments(match.location)
+
         # Weather and pitch conditions (can change during match)
         self.pitch_condition = 'normal'  # normal, dry, wet, deteriorating
         self.weather_condition = 'clear'  # clear, overcast, rainy
         self.light_condition = 'good'    # good, poor, floodlit
         
+        self.current_delivery_result = None
+        self.current_innings = 1
+        self.current_over = 0
+        self.current_ball = 0
+        self.total_runs = 0
+        self.wickets_lost = 0
+        self.balls_faced = 0
+        self.partnership_runs = 0
+        self.consecutive_dots = 0
+        self.consecutive_boundaries = 0
+        
         print(f"Initialized CricketGameEngine for match {match.match_id}")
     
-    def _build_team(self, team: TeamObject) -> TeamObject:
-        '''Build a team from a Team object'''
-        from models import TeamObject, PlayerObject
+    def _build_team(self, team) -> TeamObject:
+        '''Build a TeamObject from a Team database model'''
+        # team is a Team (database model), converting to TeamObject (simulation object)
 
         players_list = []
         for player in team.players:
-            players_list.append(PlayerObject(player.name, player.batting_vs_pace, player.batting_vs_spin, player.batting_aggression, player.bowling_skill, player.fielding_skill, player.is_wicketkeeper, player.is_captain, player.bowling_type))
+            players_list.append(PlayerObject(player.id, player.name, player.batting_vs_pace, player.batting_vs_spin, player.batting_aggression, player.bowling_skill, player.fielding_skill, player.is_wicketkeeper, player.is_captain, player.bowling_type))
 
         return TeamObject(team.id, team.full_name, team.short_name, False, players_list)
         
@@ -55,11 +66,11 @@ class CricketGameEngine:
     def start_first_innings(self, batting_first_id, batting_second_id):
         batting_team = self.game.home_team if batting_first_id == self.game.home_team.team_id else self.game.away_team
         bowling_team = self.game.away_team if batting_first_id == self.game.home_team.team_id else self.game.home_team
-        first_innings = InningsState(1, MAX_OVERS, batting_team, bowling_team, self.game.home_team.players[0], self.game.home_team.players[1], 0, EASY_BOWLING_ON)
+        first_innings = InningsState(1, self.max_overs, batting_team, bowling_team, self.game.home_team.players[0], self.game.home_team.players[1], 0, EASY_BOWLING_ON)
         self.game.set_first_innings(first_innings)
 
     def start_second_innings(self):
-        second_innings = InningsState(2, MAX_OVERS, self.game.first_innings.fielding_team, self.game.first_innings.batting_team, self.game.home_team.players[0], self.game.home_team.players[1], self.game.first_innings.total_runs + 1, EASY_BOWLING_ON)
+        second_innings = InningsState(2, self.max_overs, self.game.first_innings.fielding_team, self.game.first_innings.batting_team, self.game.home_team.players[0], self.game.home_team.players[1], self.game.first_innings.total_runs + 1, EASY_BOWLING_ON)
         self.game.set_second_innings(second_innings)
 
     
@@ -81,8 +92,6 @@ class CricketGameEngine:
     
     def update_match_state(self, delivery_result: DeliveryResult):
         """Update persistent state after a delivery"""
-        self.last_delivery_result = delivery_result
-        
         if delivery_result.is_wicket:
             self.wickets_lost += 1
             self.partnership_runs = 0
@@ -100,6 +109,33 @@ class CricketGameEngine:
             if self.current_ball > 6:
                 self.current_ball = 1
                 self.current_over += 1
+                
+        # Track consecutive deliveries for momentum
+        if delivery_result.runs_scored == 0:
+            self.consecutive_dots += 1
+        else:
+            self.consecutive_dots = 0
+            
+        if delivery_result.runs_scored >= 4:
+            self.consecutive_boundaries += 1
+        else:
+            self.consecutive_boundaries = 0
+
+        # Innings state update
+        if self.wickets_lost == 10 or self.balls_faced == self.max_overs * 6:
+            self.current_innings = 2
+            self.current_over = 0
+            self.current_ball = 0
+            self.total_runs = 0
+            self.wickets_lost = 0
+            self.balls_faced = 0
+            self.partnership_runs = 0
+            self.consecutive_dots = 0
+            self.consecutive_boundaries = 0
+
+        self.current_delivery_result = delivery_result
+        
+        
     
     def set_players(self, striker_id: int, non_striker_id: int, bowler_id: int):
         """Set current players (called when players change)"""
@@ -110,6 +146,9 @@ class CricketGameEngine:
         
         # Reset partnership when new batsmen come in
         self.partnership_runs = 0
+    
+    def _fetch_player(self, player_id: int) -> PlayerObject:
+        return self.game.home_team.players_map[player_id] if player_id in self.game.home_team.players_map else self.game.away_team.players_map[player_id]
         
     def simulate_delivery(self, bowler_id: int, striker_id: int, non_striker_id: int, fielder_id: int,
                          wicketkeeper_id: int,
@@ -133,33 +172,58 @@ class CricketGameEngine:
         
         # STUB IMPLEMENTATION - Replace with your actual logic
         # Get player objects from database
-        from models import Player
-        bowler = Player.query.get(bowler_id)
-        striker = Player.query.get(striker_id)
-        non_striker = Player.query.get(non_striker_id)
-        fielder = Player.query.get(fielder_id)
-        wicketkeeper = Player.query.get(wicketkeeper_id)
-        max_overs = 20 if self.match.match_type == 'T20' else 50
+        # from models import Player
+        # bowler = Player.query.get(bowler_id)
+        # striker = Player.query.get(striker_id)
+        # non_striker = Player.query.get(non_striker_id)
+        # fielder = Player.query.get(fielder_id)
+        # wicketkeeper = Player.query.get(wicketkeeper_id)
         
         # Apply location adjustments
-        bowler_attrs = self.apply_location_adjustments({
+        bowler = self._fetch_player(bowler_id)
+        striker = self._fetch_player(bowler_id)
+        non_striker = self._fetch_player(non_striker_id)
+        fielder = self._fetch_player(fielder_id)
+        wicketkeeper = self._fetch_player(wicketkeeper_id)
+
+        bowler_attrs = {
             'bowling_skill': bowler.bowling_skill,
-            'bowling_type': bowler.bowling_type
-        })
+            'bowling_type': bowler.bowler_type
+        }
         
-        striker_attrs = self.apply_location_adjustments({
-            'batting_vs_pace': striker.batting_vs_pace,
-            'batting_vs_spin': striker.batting_vs_spin,
-            'batting_aggression': striker.batting_aggression
-        })
+        striker_attrs = {
+            'batting_vs_pace': striker.batting_skill["pace"],
+            'batting_vs_spin': striker.batting_skill["spin"],
+            'batting_aggression': striker.batting_aggr
+        }
 
-        fielder_attrs = self.apply_location_adjustments({
+        fielder_attrs = {
             'fielding_skill': fielder.fielding_skill
-        })
+        }
 
-        wicketkeeper_attrs = self.apply_location_adjustments({
+        wicketkeeper_attrs = {
             'fielding_skill': wicketkeeper.fielding_skill
-        })
+        }
+
+
+        # bowler_attrs = self.apply_location_adjustments({
+        #     'bowling_skill': bowler.bowling_skill,
+        #     'bowling_type': bowler.bowling_type
+        # })
+        
+        # striker_attrs = self.apply_location_adjustments({
+        #     'batting_vs_pace': striker.batting_vs_pace,
+        #     'batting_vs_spin': striker.batting_vs_spin,
+        #     'batting_aggression': striker.batting_aggression
+        # })
+
+        # fielder_attrs = self.apply_location_adjustments({
+        #     'fielding_skill': fielder.fielding_skill
+        # })
+
+        # wicketkeeper_attrs = self.apply_location_adjustments({
+        #     'fielding_skill': wicketkeeper.fielding_skill
+        # })
 
         # Update persistent state
         self.current_over = current_over
@@ -168,17 +232,6 @@ class CricketGameEngine:
         self.current_striker = striker
         self.current_non_striker = non_striker
         
-        # Track consecutive deliveries for momentum
-        if self.last_delivery_result:
-            if self.last_delivery_result.runs_scored == 0:
-                self.consecutive_dots += 1
-            else:
-                self.consecutive_dots = 0
-                
-            if self.last_delivery_result.runs_scored >= 4:
-                self.consecutive_boundaries += 1
-            else:
-                self.consecutive_boundaries = 0
 
         # Add free hit adjustments
 
@@ -192,7 +245,9 @@ class CricketGameEngine:
 
         # Import events only when needed to avoid circular import issues
         import simengine.events as events
-        return events.delivery(striker_attrs['batting_vs_pace'], striker_attrs['batting_vs_spin'], striker_attrs['batting_aggression'], bowler_attrs['bowling_skill'], bowler_attrs['bowling_type'], wicketkeeper_attrs['fielding_skill'], fielder_attrs['fielding_skill'], is_free_hit, EASY_BOWLING_ON, max_overs)
+        delivery = events.delivery(striker_attrs['batting_vs_pace'], striker_attrs['batting_vs_spin'], striker_attrs['batting_aggression'], bowler_attrs['bowling_skill'], bowler_attrs['bowling_type'], wicketkeeper_attrs['fielding_skill'], fielder_attrs['fielding_skill'], is_free_hit, EASY_BOWLING_ON, self.max_overs)
+        self.update_match_state(delivery)
+        return delivery
 
         
         # For now, return a random outcome for demonstration
@@ -273,7 +328,7 @@ class CricketGameEngine:
         bowling_team_players = innings.bowling_team.players
         
         # Get max overs per bowler based on match type
-        max_overs = 4 if self.match.match_type == 'T20' else 10
+        max_overs_for_bowler = self.max_overs // 5
         
         available_bowlers = []
         for player in bowling_team_players:
@@ -290,14 +345,14 @@ class CricketGameEngine:
             overs_bowled = bowling_stats.overs_bowled if bowling_stats else 0
             
             # Check if player can bowl more overs
-            if overs_bowled < max_overs:
+            if overs_bowled < max_overs_for_bowler:
                 available_bowlers.append({
                     'id': player.id,
                     'name': player.name,
                     'bowling_type': player.bowling_type,
                     'bowling_skill': player.bowling_skill,
                     'overs_bowled': overs_bowled,
-                    'overs_remaining': max_overs - overs_bowled
+                    'overs_remaining': max_overs_for_bowler - overs_bowled
                 })
         
         # Sort by bowling skill (best bowlers first)
@@ -357,8 +412,7 @@ class CricketGameEngine:
             return True, "Invalid innings"
         
         # Check if all overs completed
-        max_overs = 20 if self.match.match_type == 'T20' else 50
-        if innings.overs_completed >= max_overs:
+        if innings.overs_completed >= self.max_overs:
             return True, "Overs completed"
         
         # Check if 10 wickets fallen

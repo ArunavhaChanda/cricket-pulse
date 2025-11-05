@@ -179,13 +179,18 @@ class BattingStats(db.Model):
     innings_id = db.Column(db.Integer, db.ForeignKey('innings.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     
+    batting_position = db.Column(db.Integer, nullable=False)
     runs_scored = db.Column(db.Integer, default=0)
     balls_faced = db.Column(db.Integer, default=0)
     fours = db.Column(db.Integer, default=0)
     sixes = db.Column(db.Integer, default=0)
+    dots = db.Column(db.Integer, default=0)
     is_out = db.Column(db.Boolean, default=False)
     dismissal_type = db.Column(db.String(20))
-    
+    bowled_by_player_name = db.Column(db.String(100))
+    caught_by_player_name = db.Column(db.String(100))
+    stumped_by_player_name = db.Column(db.String(100))
+
     # Relationships
     player = db.relationship('Player')
 
@@ -194,10 +199,10 @@ class BowlingStats(db.Model):
     innings_id = db.Column(db.Integer, db.ForeignKey('innings.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     
-    overs_bowled = db.Column(db.Float, default=0.0)
+    balls_bowled = db.Column(db.Integer, default=0)
+    dots = db.Column(db.Integer, default=0)
     runs_conceded = db.Column(db.Integer, default=0)
     wickets_taken = db.Column(db.Integer, default=0)
-    maidens = db.Column(db.Integer, default=0)
     
     # Relationships
     player = db.relationship('Player')

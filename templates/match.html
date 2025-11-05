@@ -443,6 +443,42 @@ class ScorecardManager {
             secondInnings: this.getInningsScorecard(2)
         };
     }
+    
+    syncFromAPI(inningsNumber, apiData) {
+        // Sync batting stats from API response
+        if (apiData.batting_stats) {
+            apiData.batting_stats.forEach(stat => {
+                const battingScore = this.getBattingScore(inningsNumber, stat.player_id);
+                if (battingScore) {
+                    battingScore.playerName = stat.player_name;
+                    battingScore.runsScored = stat.runs_scored;
+                    battingScore.ballsFaced = stat.balls_faced;
+                    battingScore.notOut = stat.not_out;
+                    battingScore.sixesHit = stat.sixes_hit;
+                    battingScore.foursHit = stat.fours_hit;
+                    battingScore.dots = stat.dots;
+                    battingScore.methodOfDismissal = stat.method_of_dismissal || '';
+                    battingScore.bowledByPlayerName = stat.bowled_by_player_name || '';
+                    battingScore.caughtByPlayerName = stat.caught_by_player_name || '';
+                    battingScore.stumpedByPlayerName = stat.stumped_by_player_name || '';
+                }
+            });
+        }
+        
+        // Sync bowling stats from API response
+        if (apiData.bowling_stats) {
+            apiData.bowling_stats.forEach(stat => {
+                const bowlingFigures = this.getBowlingFigures(inningsNumber, stat.player_id);
+                if (bowlingFigures) {
+                    bowlingFigures.playerName = stat.player_name;
+                    bowlingFigures.deliveries = stat.deliveries;
+                    bowlingFigures.dotBalls = stat.dot_balls;
+                    bowlingFigures.runsConceded = stat.runs_conceded;
+                    bowlingFigures.wicketsTaken = stat.wickets_taken;
+                }
+            });
+        }
+    }
 }
 
 let matchState = {
@@ -1210,60 +1246,63 @@ function updateScoreAfterDelivery(data) {
     }
 }
 
-function updatePlayerStats(data) {
-    // Update stats using the new scorecard manager
-    if (matchState.striker) {
-        // Update batting stats
-        matchState.scorecardManager.updateBattingStats(
-            matchState.currentInnings,
-            matchState.striker.id,
-            data.runs,
-            data.isWicket,
-            data.dismissal_type,
-            matchState.currentBowler,
-            matchState.fielder,
-            data.extras || 0
-        );
-        
-        // Get updated stats for display
-        const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.striker.id);
-        const sr = battingScore.getStrikeRate().toFixed(1);
-        
-        document.getElementById('striker-name').textContent = matchState.striker.name;
-        document.getElementById('striker-stats').innerHTML = 
-            `${battingScore.runsScored}* (${battingScore.ballsFaced}) | SR: ${sr}<br>4s: ${battingScore.foursHit} • 6s: ${battingScore.sixesHit}`;
+function getStrikeRate(batsmanStats) {
+    if (batsmanStats.balls_faced > 0) {
+        return (batsmanStats.runs_scored * 100.0 / batsmanStats.balls_faced).toFixed(2);
+    } else {
+        return 0.00;
     }
+}
 
-    // Update bowler stats
-    if (matchState.currentBowler) {
-        // Update bowling stats
-        matchState.scorecardManager.updateBowlingStats(
-            matchState.currentInnings,
-            matchState.currentBowler.id,
-            data.runs,
-            data.isWicket,
-            data.type === 'wide' ? 'wide' : data.type === 'noball' ? 'noball' : null
-        );
+function updatePlayerStats(data) {
+    // Fetch fresh stats from backend after delivery (this will update ScorecardManager via syncFromAPI)
+    fetchInningsStats(matchState.currentInnings, (statsData) => {
+        // Use ScorecardManager to get updated stats
+        if (matchState.striker) {
+            const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.striker.id);
+            if (battingScore) {
+                const sr = battingScore.getStrikeRate().toFixed(1);
+                document.getElementById('striker-name').textContent = matchState.striker.name;
+                document.getElementById('striker-stats').innerHTML = 
+                    `${battingScore.runsScored}${battingScore.notOut ? '*' : ''} (${battingScore.ballsFaced}) | SR: ${sr}<br>4s: ${battingScore.foursHit} • 6s: ${battingScore.sixesHit}`;
+            }
+        }
         
-        // Get updated stats for display
-        const bowlingFigures = matchState.scorecardManager.getBowlingFigures(matchState.currentInnings, matchState.currentBowler.id);
+        if (matchState.nonStriker) {
+            const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.nonStriker.id);
+            if (battingScore) {
+                const sr = battingScore.getStrikeRate().toFixed(1);
+                document.getElementById('non-striker-name').textContent = matchState.nonStriker.name;
+                document.getElementById('non-striker-stats').innerHTML = 
+                    `${battingScore.runsScored} (${battingScore.ballsFaced}) | SR: ${sr}<br>4s: ${battingScore.foursHit} • 6s: ${battingScore.sixesHit}`;
+            }
+        }
         
-        document.getElementById('bowler-name').textContent = matchState.currentBowler.name;
+        if (matchState.currentBowler) {
+            const bowlingFigures = matchState.scorecardManager.getBowlingFigures(matchState.currentInnings, matchState.currentBowler.id);
+            if (bowlingFigures) {
+                document.getElementById('bowler-name').textContent = matchState.currentBowler.name;
+                
+                // Update bowler attributes
+                const bowlerAttrs = document.getElementById('bowler-attributes');
+                const capitalizedType = matchState.currentBowler.bowling_type.charAt(0).toUpperCase() + matchState.currentBowler.bowling_type.slice(1);
+                bowlerAttrs.innerHTML = `
+                    <div class="attr-item">
+                        <div class="attr-label">Type</div>
+                        <div class="attr-value">${capitalizedType}</div>
+                    </div>
+                    <div class="attr-item">
+                        <div class="attr-label">Skill</div>
+                        <div class="attr-value">${matchState.currentBowler.bowling_skill}</div>
+                    </div>
+                `;
+            }
+        }
         
-        // Update bowler attributes
-        const bowlerAttrs = document.getElementById('bowler-attributes');
-        const capitalizedType = matchState.currentBowler.bowling_type.charAt(0).toUpperCase() + matchState.currentBowler.bowling_type.slice(1);
-        bowlerAttrs.innerHTML = `
-            <div class="attr-item">
-                <div class="attr-label">Type</div>
-                <div class="attr-value">${capitalizedType}</div>
-            </div>
-            <div class="attr-item">
-                <div class="attr-label">Skill</div>
-                <div class="attr-value">${matchState.currentBowler.bowling_skill}</div>
-            </div>
-        `;
-    }
+        // Refresh the scorecards
+        updateBattingCard();
+        updateBowlingCard();
+    });
     
     // Swap strike on odd runs
     if (data.runs % 2 === 1 && !data.isWicket) {
@@ -1312,18 +1351,19 @@ function updatePlayerDisplay() {
             </div>
         `;
         
-        // Get stats from scorecardManager for current innings
-        const strikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.striker.id);
-        if (strikerStats) {
-            const strikerSR = strikerStats.ballsFaced > 0 ? 
-                (strikerStats.runsScored / strikerStats.ballsFaced * 100).toFixed(1) : '0.0';
-            document.getElementById('striker-stats').innerHTML = 
-                `${strikerStats.runsScored}* (${strikerStats.ballsFaced}) | SR: ${strikerSR}<br>4s: ${strikerStats.foursHit} • 6s: ${strikerStats.sixesHit}`;
-        } else {
-            // Fallback if no stats found
-            document.getElementById('striker-stats').innerHTML = 
-                `0* (0) | SR: 0.0<br>4s: 0 • 6s: 0`;
-        }
+        // Fetch stats from backend (this will update ScorecardManager via syncFromAPI)
+        fetchInningsStats(matchState.currentInnings, (statsData) => {
+            const strikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.striker.id);
+            if (strikerStats) {
+                const strikerSR = strikerStats.ballsFaced > 0 ? 
+                    strikerStats.getStrikeRate().toFixed(1) : '0.0';
+                document.getElementById('striker-stats').innerHTML = 
+                    `${strikerStats.runsScored}${strikerStats.notOut ? '*' : ''} (${strikerStats.ballsFaced}) | SR: ${strikerSR}<br>4s: ${strikerStats.foursHit} • 6s: ${strikerStats.sixesHit}`;
+            } else {
+                document.getElementById('striker-stats').innerHTML = 
+                    `0* (0) | SR: 0.0<br>4s: 0 • 6s: 0`;
+            }
+        });
     }
     
     if (matchState.nonStriker) {
@@ -1346,18 +1386,19 @@ function updatePlayerDisplay() {
             </div>
         `;
         
-        // Get stats from scorecardManager for current innings
-        const nonStrikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.nonStriker.id);
-        if (nonStrikerStats) {
-            const nonStrikerSR = nonStrikerStats.ballsFaced > 0 ? 
-                (nonStrikerStats.runsScored / nonStrikerStats.ballsFaced * 100).toFixed(1) : '0.0';
-            document.getElementById('non-striker-stats').innerHTML = 
-                `${nonStrikerStats.runsScored}* (${nonStrikerStats.ballsFaced}) | SR: ${nonStrikerSR}<br>4s: ${nonStrikerStats.foursHit} • 6s: ${nonStrikerStats.sixesHit}`;
-        } else {
-            // Fallback if no stats found
-            document.getElementById('non-striker-stats').innerHTML = 
-                `0* (0) | SR: 0.0<br>4s: 0 • 6s: 0`;
-        }
+        // Fetch stats from backend (this will update ScorecardManager via syncFromAPI)
+        fetchInningsStats(matchState.currentInnings, (statsData) => {
+            const nonStrikerStats = matchState.scorecardManager.getBattingScore(matchState.currentInnings, matchState.nonStriker.id);
+            if (nonStrikerStats) {
+                const nonStrikerSR = nonStrikerStats.ballsFaced > 0 ? 
+                    nonStrikerStats.getStrikeRate().toFixed(1) : '0.0';
+                document.getElementById('non-striker-stats').innerHTML = 
+                    `${nonStrikerStats.runsScored}${nonStrikerStats.notOut ? '*' : ''} (${nonStrikerStats.ballsFaced}) | SR: ${nonStrikerSR}<br>4s: ${nonStrikerStats.foursHit} • 6s: ${nonStrikerStats.sixesHit}`;
+            } else {
+                document.getElementById('non-striker-stats').innerHTML = 
+                    `0* (0) | SR: 0.0<br>4s: 0 • 6s: 0`;
+            }
+        });
     }
 }
 
@@ -2092,6 +2133,27 @@ function updateMatchDisplay() {
     updateBowlingCard();
 }
 
+// Function to fetch stats from backend API
+function fetchInningsStats(inningsNumber, callback) {
+    fetch(`/api/matches/${MATCH_DATA.match_id}/innings/${inningsNumber}/stats`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error fetching stats:', data.error);
+                callback(null);
+            } else {
+                // Update ScorecardManager with latest stats from backend
+                matchState.scorecardManager.syncFromAPI(inningsNumber, data);
+                // Then call the callback with the data
+                callback(data);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching stats:', error);
+            callback(null);
+        });
+}
+
 function updateBattingCard() {
     const battingList = document.getElementById('batting-list');
     if (!matchState.battingTeam) return;
@@ -2109,34 +2171,36 @@ function updateBattingCard() {
     `;
     battingList.appendChild(headerRow);
     
-    // Show only players who have already batted (in batting order)
-    matchState.battingOrderPlayers.forEach(player => {
-        // Get stats for this player from the current innings
-        const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, player.id);
-        if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
-        
-        const row = document.createElement('div');
-        row.className = 'batting-row';
-        
-        // Check if this player is currently batting
-        if (player.id === matchState.striker?.id || player.id === matchState.nonStriker?.id) {
-            row.classList.add('current', 'not-out');
-        } else if (!battingScore.notOut) {
-            row.classList.add('out');
-        } else {
-            row.classList.add('not-out');
-        }
-        
-        const scorecardRow = battingScore.getScorecardRow();
-        
-        row.innerHTML = `
-            <div>${nameInitializer(player.name)}${player.is_captain ? ' (C)' : ''}${player.is_wicketkeeper ? ' (WK)' : ''}</div>
-            <div>${scorecardRow.score}</div>
-            <div>${scorecardRow.strikeRate}</div>
-            <div>${scorecardRow.fours}/${scorecardRow.sixes}</div>
-        `;
-        
-        battingList.appendChild(row);
+    // Fetch stats from backend (this will update ScorecardManager via syncFromAPI)
+    fetchInningsStats(matchState.currentInnings, (statsData) => {
+        // Use ScorecardManager to display stats
+        matchState.battingOrderPlayers.forEach(player => {
+            const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, player.id);
+            if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
+            
+            const row = document.createElement('div');
+            row.className = 'batting-row';
+            
+            // Check if this player is currently batting
+            if (player.id === matchState.striker?.id || player.id === matchState.nonStriker?.id) {
+                row.classList.add('current', battingScore.notOut ? 'not-out' : 'out');
+            } else if (!battingScore.notOut) {
+                row.classList.add('out');
+            } else {
+                row.classList.add('not-out');
+            }
+            
+            const scorecardRow = battingScore.getScorecardRow();
+            
+            row.innerHTML = `
+                <div>${nameInitializer(player.name)}${player.is_captain ? ' (C)' : ''}${player.is_wicketkeeper ? ' (WK)' : ''}</div>
+                <div>${scorecardRow.score}</div>
+                <div>${scorecardRow.strikeRate}</div>
+                <div>${scorecardRow.fours}/${scorecardRow.sixes}</div>
+            `;
+            
+            battingList.appendChild(row);
+        });
     });
 }
 
@@ -2158,28 +2222,31 @@ function updateBowlingCard() {
     `;
     bowlingList.appendChild(headerRow);
     
-    // Get current innings bowling stats
-    const currentInningsStats = matchState.scorecardManager.getInningsScorecard(matchState.currentInnings);
-    
-    // Show bowlers who have bowled in current innings
-    currentInningsStats.bowling
-        .filter(bowlingFigures => bowlingFigures.deliveries > 0 || bowlingFigures.playerName === matchState.currentBowler?.name)
-        .forEach(bowlingFigures => {
-            const row = document.createElement('div');
-            row.className = 'bowling-row';
-            
-            const scorecardRow = bowlingFigures.getScorecardRow();
-            
-            row.innerHTML = `
-                <div>${nameInitializer(scorecardRow.playerName)}</div>
-                <div>${scorecardRow.overs}</div>
-                <div>${scorecardRow.runs}</div>
-                <div>${scorecardRow.wickets}</div>
-                <div>${scorecardRow.economy}</div>
-            `;
-            
-            bowlingList.appendChild(row);
-        });
+    // Fetch stats from backend (this will update ScorecardManager via syncFromAPI)
+    fetchInningsStats(matchState.currentInnings, (statsData) => {
+        // Use ScorecardManager to display stats
+        const currentInningsStats = matchState.scorecardManager.getInningsScorecard(matchState.currentInnings);
+        
+        // Show bowlers who have bowled (deliveries > 0) or current bowler
+        currentInningsStats.bowling
+            .filter(bowlingFigures => bowlingFigures.deliveries > 0 || bowlingFigures.playerName === matchState.currentBowler?.name)
+            .forEach(bowlingFigures => {
+                const row = document.createElement('div');
+                row.className = 'bowling-row';
+                
+                const scorecardRow = bowlingFigures.getScorecardRow();
+                
+                row.innerHTML = `
+                    <div>${nameInitializer(scorecardRow.playerName)}</div>
+                    <div>${scorecardRow.overs}</div>
+                    <div>${scorecardRow.runs}</div>
+                    <div>${scorecardRow.wickets}</div>
+                    <div>${scorecardRow.economy}</div>
+                `;
+                
+                bowlingList.appendChild(row);
+            });
+    });
 }
 
 // Initialize match state based on current status
