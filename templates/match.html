@@ -1297,11 +1297,7 @@ function updatePlayerStats(data) {
                     </div>
                 `;
             }
-        }
-        
-        // Refresh the scorecards
-        updateBattingCard();
-        updateBowlingCard();
+        }        
     });
     
     // Swap strike on odd runs
@@ -2174,7 +2170,9 @@ function updateBattingCard() {
     // Fetch stats from backend (this will update ScorecardManager via syncFromAPI)
     fetchInningsStats(matchState.currentInnings, (statsData) => {
         // Use ScorecardManager to display stats
+        console.log(matchState.battingOrderPlayers);
         matchState.battingOrderPlayers.forEach(player => {
+            console.log(player);
             const battingScore = matchState.scorecardManager.getBattingScore(matchState.currentInnings, player.id);
             if (!battingScore || battingScore.ballsFaced === 0) return; // Skip if not batted yet
             
@@ -2202,6 +2200,7 @@ function updateBattingCard() {
             battingList.appendChild(row);
         });
     });
+    console.log(battingList);
 }
 
 function updateBowlingCard() {
