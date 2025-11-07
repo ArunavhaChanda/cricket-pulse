@@ -12,7 +12,7 @@ active_engines = {}  # match_id -> CricketGameEngine instance
 
 def register_api_routes(app, db, socketio):
     '''Register all API routes with the Flask app'''
-    from models import db, Team, Player, Match, Innings, Delivery, BattingStats, BowlingStats
+    from models import db, Team, Player, Match, Innings, Delivery, BattingStats, BowlingStats, Location
 
     # @app.route('/')
     # def index():
@@ -140,6 +140,30 @@ def register_api_routes(app, db, socketio):
         db.session.commit()
         return jsonify({'message': 'Player deleted successfully'})
 
+    # Location Management APIs
+    @app.route('/api/locations', methods=['GET'])
+    def get_locations():
+        """Get all available locations"""
+        locations = Location.query.order_by(Location.name).all()
+        return jsonify([location.to_dict() for location in locations])
+    
+    @app.route('/api/locations/<short_code>/multipliers', methods=['GET'])
+    def get_location_multipliers(short_code):
+        """Get multipliers for a specific location by short code"""
+        location = Location.query.filter_by(short_code=short_code.upper()).first()
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+        
+        return jsonify({
+            'short_code': location.short_code,
+            'name': location.name,
+            'multipliers': {
+                'aggression': location.aggression_multiplier,
+                'spin': location.spin_multiplier,
+                'pace': location.pace_multiplier
+            }
+        })
+
     # Match Management APIs
     @app.route('/api/matches', methods=['POST'])
     def create_match():
@@ -162,11 +186,18 @@ def register_api_routes(app, db, socketio):
         if len(team1.players) != 11 or len(team2.players) != 11:
             return jsonify({'error': 'Both teams must have exactly 11 players'}), 400
         
+        # Get location short code (default to None if not provided)
+        location_short_code = data.get('location_short_code')
+        if location_short_code:
+            location_short_code = location_short_code.upper()
+        
         match = Match(
             team1_id=data['team1_id'],
             team2_id=data['team2_id'],
+            team1_short_name=team1.short_name,
+            team2_short_name=team2.short_name,
             match_type=data['match_type'],
-            location=data.get('location', 'default').lower()
+            location_short_code=location_short_code
         )
         
         db.session.add(match)
@@ -580,7 +611,7 @@ def register_api_routes(app, db, socketio):
             'team1_name': match.team1.short_name,
             'team2_name': match.team2.short_name,
             'match_type': match.match_type,
-            'location': match.location,
+            'location_short_code': match.location_short_code,
             'status': match.status,
             'result_text': match.result_text,
             'current_score': f"{match.team1.short_name} vs {match.team2.short_name}"

@@ -27,7 +27,8 @@ class CricketGameEngine:
 
         self.game = Game(home_team, away_team)        
         
-        self.location_multipliers = self.apply_location_adjustments(match.location)
+        # Apply location adjustments using location_short_code
+        self.location_multipliers = self.apply_location_adjustments(match.location_short_code)
 
         # Weather and pitch conditions (can change during match)
         self.pitch_condition = 'normal'  # normal, dry, wet, deteriorating
@@ -57,11 +58,30 @@ class CricketGameEngine:
 
         return TeamObject(team.id, team.full_name, team.short_name, False, players_list)
         
-    def apply_location_adjustments(self, location: str) -> Dict[str, float]:
-        '''Get location-based attribute multipliers'''
-        from simengine.locations import get_location_short_code
-        self.game.set_location(get_location_short_code(location))
-        self.game.set_ground_adjustments()
+    def apply_location_adjustments(self, location_short_code: str) -> Dict[str, float]:
+        '''Get location-based attribute multipliers from database'''
+        from models import Location
+        
+        # If location_short_code is provided, fetch multipliers from database
+        if location_short_code:
+            location = Location.query.filter_by(short_code=location_short_code.upper()).first()
+            if location:
+                # Set location in game and apply adjustments
+                self.game.set_location(location_short_code.upper())
+                multipliers = {
+                    'aggression': location.aggression_multiplier,
+                    'spin': location.spin_multiplier,
+                    'pace': location.pace_multiplier
+                }
+                self.game.set_ground_adjustments()
+                return multipliers
+        
+        # Fallback: use default multipliers (1.0, 1.0, 1.0) if location not found
+        return {
+            'aggression': 1.0,
+            'spin': 1.0,
+            'pace': 1.0
+        }
 
     def start_first_innings(self, batting_first_id, batting_second_id):
         batting_team = self.game.home_team if batting_first_id == self.game.home_team.team_id else self.game.away_team
@@ -181,7 +201,7 @@ class CricketGameEngine:
         
         # Apply location adjustments
         bowler = self._fetch_player(bowler_id)
-        striker = self._fetch_player(bowler_id)
+        striker = self._fetch_player(striker_id)
         non_striker = self._fetch_player(non_striker_id)
         fielder = self._fetch_player(fielder_id)
         wicketkeeper = self._fetch_player(wicketkeeper_id)

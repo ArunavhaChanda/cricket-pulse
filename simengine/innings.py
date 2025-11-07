@@ -222,7 +222,7 @@ class Game:
 	third_innings = None
 	fourth_innings = None
 	winner = None
-	location = ""
+	location_short_code = ""
 	def __init__(self, home_team, away_team):
 		self.home_team = home_team
 		self.away_team = away_team
@@ -232,10 +232,10 @@ class Game:
 		self.third_innings = None
 		self.fourth_innings = None
 		self.winner = None
-		self.location = ""
+		self.location_short_code = ""
 
-	def set_location(self, location):
-		self.location = location
+	def set_location(self, location_short_code):
+		self.location_short_code = location_short_code.upper()
 
 
 	def chosen_team_has_better_batting(self, chosen_team):
@@ -300,7 +300,7 @@ class Game:
 		return self.chosen_team_has_better_bowling(self.home_team)
 
 	def toss(self):
-		location_name = get_location_name(self.location)
+		location_name = get_location_name(self.location_short_code.upper())
 		location_string = ""
 		if location_name != "":
 			location_string = location_name + " for "
@@ -380,10 +380,14 @@ class Game:
 		player.fielding_skill = min(100,round(player.fielding_skill * 1.01))
 
 
-	def set_ground_adjustments(self):
-		if (self.location == ""):
-			self.location = get_home_ground_code(self.home_team.short_name)
-		((self.home_team, self.away_team), self.game_multipliers) = ground_adjustments(self.home_team, self.away_team, self.location)
+	def set_ground_adjustments(self, multipliers=None):
+		if (self.location_short_code == ""):
+			self.location_short_code = get_home_ground_code(self.home_team.short_name)
+		if multipliers:
+			self.game_multipliers = (multipliers['aggression'], multipliers['spin'], multipliers['pace'])
+			(self.home_team, self.away_team) = ground_adjustments_with_multipliers(self.home_team, self.away_team, self.game_multipliers)
+		else:
+			((self.home_team, self.away_team), self.game_multipliers) = ground_adjustments(self.home_team, self.away_team, self.location_short_code)
 
 
 	def set_home_advantage(self):

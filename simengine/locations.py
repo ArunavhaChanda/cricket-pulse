@@ -6,7 +6,7 @@ def get_all_locations():
 		"NYC": "New York",\
 		"MEL": "Melbourne",\
 		"LON": "London",\
-		"BAN": "Bangkok",\
+		"BKK": "Bangkok",\
 		"PAR": "Paris",\
 		"CHI": "Chicago",\
 		"DUB": "Dubai",\
@@ -30,15 +30,17 @@ def get_all_locations():
 		"DEL": "Delhi",\
 		"MOH": "Mohali",\
 		"JAI": "Jaipur",\
-		"LUC": "Lucknow"\
+		"LUC": "Lucknow",\
+		"LA": "Los Angeles",\
+		"TOR": "Toronto",\
+		"TOK": "Tokyo",\
+		"MOH": "Mohali"\
 	}
 	return locations
 
 def get_location_name(location_short_code):
 	locations = get_all_locations()
-	if location_short_code in locations:
-		return locations[location_short_code]
-	return ""
+	return locations.get(location_short_code, "")
 
 def get_location_short_code(location_name):
 	locations = get_all_locations()
@@ -138,3 +140,6 @@ def ground_adjustments(home_team, away_team, location):
 	multipliers = apply_conditions(multipliers)
 
 	return (apply_multipliers(home_team, away_team, multipliers, need_multiplier), multipliers)
+
+def ground_adjustments_with_multipliers(home_team, away_team, game_multipliers):
+	return apply_multipliers(home_team, away_team, game_multipliers, True)

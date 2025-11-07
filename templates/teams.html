@@ -1,7 +1,7 @@
 <!-- templates/teams.html -->
 {% extends "base.html" %}
 
-{% block title %}Team Management - Cricket Pukse{% endblock %}
+{% block title %}Team Management - Cricket Pulse{% endblock %}
 {% block subtitle %}Create and Manage Your Cricket Teams{% endblock %}
 
 {% block extra_css %}
@@ -311,10 +311,8 @@
         <div class="form-group">
             <label for="location">Location</label>
             <select id="location" class="select-input">
-                <option value="default">Default</option>
-                <option value="mumbai">Mumbai (Pace Friendly)</option>
-                <option value="chennai">Chennai (Spin Friendly)</option>
-                <option value="delhi">Delhi (Bowler Friendly)</option>
+                <option value="">Select Location</option>
+                <!-- Locations will be loaded dynamically -->
             </select>
         </div>
     </form>
@@ -387,6 +385,7 @@
 let currentTeamId = null;
 let currentPlayerId = null;
 let teams = [];
+let locations = [];
 
 // Define loadTeams function first
 function loadTeams() {
@@ -423,6 +422,34 @@ function loadTeams() {
     });
 }
 
+// Load locations from API
+function loadLocations() {
+    fetch('/api/locations')
+        .then(response => response.json())
+        .then(data => {
+            locations = data;
+            populateLocationDropdown(data);
+        })
+        .catch(error => {
+            console.error('Error loading locations:', error);
+        });
+}
+
+function populateLocationDropdown(locationsData) {
+    const locationSelect = document.getElementById('location');
+    // Clear existing options except the first one
+    locationSelect.innerHTML = '<option value="">Select Location</option>';
+    
+    locationsData.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location.short_code;
+        // Format multipliers: (Aggression: 1.05x, Spin: 0.99x, Pace: 1.01x)
+        const multipliersText = `(Aggression: ${location.aggression_multiplier}x, Spin: ${location.spin_multiplier}x, Pace: ${location.pace_multiplier}x)`;
+        option.textContent = `${location.name} ${multipliersText}`;
+        locationSelect.appendChild(option);
+    });
+}
+
 // Load teams on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, setting up event listeners...');
@@ -440,6 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     loadTeams();
+    loadLocations();
 });
 
 // Create team form handler
@@ -656,7 +684,8 @@ function createMatch() {
     const team1Id = document.getElementById('team1-select').value;
     const team2Id = document.getElementById('team2-select').value;
     const matchType = document.getElementById('match-type').value;
-    const location = document.getElementById('location').value;
+    const locationSelect = document.getElementById('location');
+    const locationShortCode = locationSelect.value; // This is already the short code
     
     if (!team1Id || !team2Id || !matchType) {
         showNotification('Please fill all required fields', 'error');
@@ -668,17 +697,23 @@ function createMatch() {
         return;
     }
     
+    const matchData = {
+        team1_id: parseInt(team1Id),
+        team2_id: parseInt(team2Id),
+        match_type: matchType
+    };
+    
+    // Only add location_short_code if a location is selected
+    if (locationShortCode) {
+        matchData.location_short_code = locationShortCode;
+    }
+    
     fetch('/api/matches', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            team1_id: parseInt(team1Id),
-            team2_id: parseInt(team2Id),
-            match_type: matchType,
-            location: location
-        })
+        body: JSON.stringify(matchData)
     })
     .then(response => response.json())
     .then(data => {

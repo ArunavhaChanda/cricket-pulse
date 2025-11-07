@@ -7,6 +7,24 @@ from app import db
 
 
 # Database Models
+class Location(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    short_code = db.Column(db.String(10), nullable=False, unique=True)
+    aggression_multiplier = db.Column(db.Float, default=1.0)
+    spin_multiplier = db.Column(db.Float, default=1.0)
+    pace_multiplier = db.Column(db.Float, default=1.0)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'short_code': self.short_code,
+            'aggression_multiplier': self.aggression_multiplier,
+            'spin_multiplier': self.spin_multiplier,
+            'pace_multiplier': self.pace_multiplier
+        }
+
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
@@ -62,10 +80,13 @@ class Match(db.Model):
     # Teams
     team1_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     team2_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    team1_short_name = db.Column(db.String(3), nullable=False, unique=True)
+    team2_short_name = db.Column(db.String(3), nullable=False, unique=True)
+
     
     # Match details
     match_type = db.Column(db.String(10), nullable=False)  # 'T20', 'ODI', 'Test'
-    location = db.Column(db.String(100))
+    location_short_code = db.Column(db.String(10))  # Location short code (e.g., 'NYC', 'MEL')
     
     # Game state
     status = db.Column(db.String(20), default='setup')  # 'setup', 'toss', 'first_innings', 'second_innings', 'super_over', 'completed'
@@ -103,7 +124,7 @@ class Match(db.Model):
             'team1': self.team1.to_dict() if self.team1 else None,
             'team2': self.team2.to_dict() if self.team2 else None,
             'match_type': self.match_type,
-            'location': self.location,
+            'location_short_code': self.location_short_code,
             'status': self.status,
             'current_innings': self.current_innings,
             'toss_winner': self.toss_winner.short_name if self.toss_winner else None,
